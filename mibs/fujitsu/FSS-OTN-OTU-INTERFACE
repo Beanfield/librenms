@@ -1,0 +1,137 @@
+--=============================================================================
+-- Copyright (c) 2016 Fujitsu Network Communications, Inc. All Rights Reserved.
+--=============================================================================
+
+FSS-OTN-OTU-INTERFACE DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, Unsigned32, Counter32, Counter64,
+    Gauge32, IpAddress
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, RowStatus, DateAndTime,
+    TruthValue
+        FROM SNMPv2-TC
+    ifIndex
+        FROM IF-MIB
+    fssInterfaces
+        FROM FSS-COMMON-SMI
+;
+
+fSS-OTN-OTU-INTERFACE MODULE-IDENTITY
+    LAST-UPDATED "201810080000Z"
+    ORGANIZATION 
+        "Fujitsu Network Communications, Inc."
+    CONTACT-INFO
+        "Fujitsu Technical Assistance Center (FTAC),
+         1-800-USE-FTAC (1-800-873-3822)"
+    DESCRIPTION 
+        "This MIB module contains object definitions
+         for the OTU Interfaces."
+
+    REVISION "201810080000Z"
+    DESCRIPTION "Updated supported values of OTN-ODU interface"
+
+    REVISION "201505120000Z"
+    DESCRIPTION "Initial Revision"
+    ::= { fssInterfaces 300 }
+
+ConfdString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs: and confd: types mapped to strings"
+    SYNTAX      OCTET STRING
+
+String ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs:string"
+    SYNTAX      OCTET STRING
+
+otu-dataTable OBJECT-TYPE 
+  SYNTAX      SEQUENCE OF OTU-dataEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { fSS-OTN-OTU-INTERFACE 1 }
+
+otu-dataEntry OBJECT-TYPE
+    SYNTAX      OTU-dataEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { ifIndex }
+        ::= { otu-dataTable 1 }
+
+OTU-dataEntry ::=
+    SEQUENCE {
+       otuLoopback INTEGER,
+       otuLocation INTEGER,
+       otuType INTEGER,
+       otuRate ConfdString,
+       otuOper-status INTEGER,
+       otuAdmin-status INTEGER,
+       otuFec INTEGER,
+       otuDirection INTEGER
+    }
+
+otuLoopback OBJECT-TYPE
+    SYNTAX      INTEGER {disabled(0),enabled(1)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "loopback operation and release"
+    DEFVAL { disabled }
+    ::= { otu-dataEntry 1 }
+
+otuLocation OBJECT-TYPE
+    SYNTAX      INTEGER {nearEnd(0),farEnd(1)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Set Loopback Location."
+    DEFVAL { nearEnd }
+    ::= { otu-dataEntry 2 }
+
+otuType OBJECT-TYPE
+    SYNTAX      INTEGER {fac(0),term(1),fac2(2)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Set Loopback type (or direction)."
+    DEFVAL { fac }
+    ::= { otu-dataEntry 3 }
+
+otuRate OBJECT-TYPE
+    SYNTAX      ConfdString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "rate identity of the OTU."
+    ::= { otu-dataEntry 4 }
+
+otuOper-status OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3),unknown(4),dormant(5),not-present(6),lower-layer-down(7)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { otu-dataEntry 5 }
+
+otuAdmin-status OBJECT-TYPE
+    SYNTAX      INTEGER {up(1),down(2),testing(3)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION ""
+    ::= { otu-dataEntry 6 }
+
+otuFec OBJECT-TYPE
+    SYNTAX      INTEGER {off(0),rsfec(1),sdfeca1(2),efec(3),ufec(4),sdfec(5),sdfecb1(6),scfec(7),hgsdfec(8),hgsdfec2(9)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "Forward Error Correction"
+    DEFVAL { sdfeca1 }
+    ::= { otu-dataEntry 7 }
+
+otuDirection OBJECT-TYPE
+    SYNTAX      INTEGER {uni-rx(0),uni-tx(1),bi(2)}
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "direction of interface"
+    DEFVAL { bi }
+    ::= { otu-dataEntry 8 }
+END

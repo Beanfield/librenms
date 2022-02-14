@@ -1,0 +1,9 @@
+os: fujitsut100
+text: 'Fujitsu T Series'
+type: network
+icon: fujitsu
+group: fujitsu
+mib_dir: fujitsu
+discovery:
+    - sysObjectID:
+        - .1.3.6.1.4.1.211.1
