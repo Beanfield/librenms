@@ -43,7 +43,7 @@ foreach ($pre_cache['junos_firewall_oids'] as $index => $firewall_entry) {
 
     discover_sensor(
         $valid['sensor'],
-        'count',
+        'count_rate',
         $device,
         $packetOID,
         $index . 'Packets' . $firewall_entry['jnxFWCounterDisplayType'],
@@ -60,7 +60,7 @@ foreach ($pre_cache['junos_firewall_oids'] as $index => $firewall_entry) {
 
     discover_sensor(
         $valid['sensor'],
-        'count',
+        'count_rate',
         $device,
         $bytesOID,
         $index . 'Bytes' . $firewall_entry['jnxFWCounterDisplayType'],
