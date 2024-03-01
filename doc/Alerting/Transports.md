@@ -34,7 +34,10 @@ You need to install an additional php module : `bcmath`
 
 ## Alerta
 
-The [alerta](https://alerta.io) monitoring system is a tool used to consolidate and de-duplicate alerts from multiple sources for quick ‘at-a-glance’ visualisation. With just one system you can monitor alerts from many other monitoring tools on a single screen.
+The [alerta](https://alerta.io) monitoring system is a tool used to
+consolidate and de-duplicate alerts from multiple sources for quick
+‘at-a-glance’ visualisation. With just one system you can monitor
+alerts from many other monitoring tools on a single screen.
 
 **Example:**
 
@@ -63,8 +66,21 @@ It is possible to configure as many label values as required in
 Alertmanager Options section. Every label and its value should be
 entered as a new line.
 
+Labels can be a fixed string or a dynamic variable from the alert.
+To set a dynamic variable your label must start with extra_ then
+complete with the name of your label (only characters, figures and
+underscore are allowed here). The value must be the name of
+the variable you want to get (you can see all the variables in
+Alerts->Notifications by clicking on the Details icon of your alert
+when it is pending). If the variable's name does not match with an
+existing value the label's value will be the string you provided just
+as it was a fixed string.
+
 Multiple Alertmanager URLs (comma separated) are supported. Each
 URL will be tried and the search will stop at the first success.
+
+Basic HTTP authentication with a username and a password is supported.
+If you let those value blank, no authentication will be used.
 
 [Alertmanager Docs](https://prometheus.io/docs/alerting/alertmanager/)
 
@@ -73,22 +89,29 @@ URL will be tried and the search will stop at the first success.
 | Config | Example |
 | ------ | ------- |
 | Alertmanager URL(s)   | http://alertmanager1.example.com,http://alertmanager2.example.com |
-| Alertmanager Options: | source=librenms <br/> customlabel=value |
+| Alertmanager Username | myUsername |
+| Alertmanager Password | myPassword |
+| Alertmanager Options: | source=librenms <br/> customlabel=value <br/> extra_dynamic_value=variable_name |
 
 ## API
 
 The API transport allows to reach any service provider using POST, PUT or GET URLs
 (Like SMS provider, etc). It can be used in multiple ways:
 
-- The same text built from the Alert template is available in the variable
-``` $msg ```, which can then be sent as an option to the API. Be carefull that
-HTTP GET requests are usually limited in length.
-- The API-Option fields can be directly built from the variables defined in
-[Template-Syntax](Templates.md#syntax) but without the 'alert->' prefix.
-For instance, ``` $alert->uptime ``` is available as ``` $uptime ``` in the
-API transport
+- The same text built from the Alert template is available in the
+  variable
+
+`$msg`, which can then be sent as an option to the API. Be carefull
+that HTTP GET requests are usually limited in length.
+
+- The API-Option fields can be directly built from the variables
+  defined in [Template-Syntax](Templates.md#syntax) but without the
+  'alert->' prefix. For instance, `$alert->uptime` is available as
+  `$uptime` in the API transport
+
 - The API-Headers allows you to add the headers that the api endpoint requires.
-- The API-body allow sending data in the format required by the ApI endpoint.
+
+- The API-body allow sending data in the format required by the API endpoint.
 
 A few variables commonly used :
 
@@ -132,7 +155,9 @@ the title and text of the alert to a screen in the Network Operation Center.
 | API URL       | <http://my.example.com/wall-display>
 | API Options   | title={{ $title }} <br/> msg={{ $msg }}|
 
-The example below will use the API named component of my.example.com with id 1, body as json status value and headers send token authentication and content type required.
+The example below will use the API named component of my.example.com
+with id 1, body as json status value and headers send token
+authentication and content type required.
 
 | Config | Example |
 | ------ | ------- |
@@ -142,8 +167,8 @@ The example below will use the API named component of my.example.com with id 1, 
 |               | Content-Type=application/json
 | API Body      | { "status": 2 }
 
-
 ## aspSMS
+
 aspSMS is a SMS provider that can be configured by using the generic API Transport.
 You need a token you can find on your personnal space.
 
@@ -156,36 +181,26 @@ You need a token you can find on your personnal space.
 | Transport type | Api |
 | API Method | POST |
 | API URL | https://soap.aspsms.com/aspsmsx.asmx/SimpleTextSMS |
-| Options | UserKey=USERKEY<br />Password=APIPASSWORD<br />Recipient=RECIPIENT<br />Originator=ORIGINATOR<br />MessageText={{ $msg }} |
-
-## Boxcar
-
-Copy your access token from the Boxcar app or from the Boxcar.io
-website and setup the transport.
-
-[Boxcar Docs](http://developer.boxcar.io/api/publisher/)
-
-**Example:**
-
-| Config | Example |
-| ------ | ------- |
-| Access Token | i23f23mr23rwerw |
+| Options | UserKey=USERKEY<br />Password=APIPASSWORD<br />Recipient=RECIPIENT<br/> Originator=ORIGINATOR<br />MessageText={{ $msg }} |
 
 ## Browser Push
 
-Browser push notifications can send a notification to the user's device even when the browser is not open.
-This requires HTTPS, the PHP GMP extension, [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) support, 
-and permissions on each device to send alerts.
+Browser push notifications can send a notification to the user's
+device even when the browser is not open. This requires HTTPS, the PHP
+GMP extension, [Push
+API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API)
+support, and permissions on each device to send alerts.
 
-Simply configure an alert transport and allow notification permission on the device(s) you
-wish to receive alerts on.  You may disable alerts on a browser on the user preferences page.
+Simply configure an alert transport and allow notification permission
+on the device(s) you wish to receive alerts on.  You may disable
+alerts on a browser on the user preferences page.
 
 ## Canopsis
 
 Canopsis is a hypervision tool. LibreNMS can send alerts to Canopsis
 which are then converted to canopsis events.
 
-[Canopsis Docs](https://doc.canopsis.net/guide-developpement/struct-event/)
+[Canopsis Docs](https://doc.canopsis.net/guide-developpement/structures/#structure-des-evenements)
 
 **Example:**
 
@@ -257,15 +272,13 @@ in the Discord Docs below.
 You can have LibreNMS send alerts to an elasticsearch database. Each
 fault will be sent as a separate document.
 
-The index pattern uses strftime() formatting.
-
 **Example:**
 
 | Config | Example |
 | ------ | ------- |
 | Host | 127.0.0.1 |
 | Port | 9200 |
-| Index Patter | librenms-%Y.%m.%d |
+| Index Pattern | \l\i\b\r\e\n\m\s-Y.m.d |
 
 ## GitLab
 
@@ -280,6 +293,17 @@ tokens to authenticate with GitLab and will store the token in cleartext.
 | Host | <http://gitlab.host.tld> |
 | Project ID | 1 |
 | Personal Access Token | AbCdEf12345 |
+
+
+## Grafana Oncall
+
+Send alerts to Grafana Oncall using a [Formatted Webhook](https://grafana.com/docs/oncall/latest/integrations/webhook/)
+
+**Example:**
+
+| Config | Example |
+| ------ | ------- |
+| Webhook URL | https://a-prod-us-central-0.grafana.net/integrations/v1/formatted_webhook/m12xmIjOcgwH74UF8CN4dk0Dh/ |
 
 ## HipChat
 
@@ -296,9 +320,9 @@ for details on acceptable values.
 | API URL | <https://api.hipchat.com/v1/rooms/message?auth_token=109jawregoaihj> |
 | Room ID | 7654321 |
 | From Name | LibreNMS |
-| Options | color = red <br/> notify = 1 <br/> message_format = text |
+| Options | color=red |
 
-At present the following options are supported: `color`, `notify` and `message_format`.
+At present the following options are supported: `color`.
 
 > Note: The default message format for HipChat messages is HTML.  It is
 > recommended that you specify the `text` message format to prevent unexpected
@@ -318,26 +342,125 @@ Configuration of the LibreNMS IRC-Bot is described [here](https://github.com/lib
 
 ## JIRA
 
-You can have LibreNMS create issues on a Jira instance for critical
-and warning alerts. The Jira transport only sets  summary and
-description fields. Therefore your Jira project must not have any
-other mandatory field for the provided issuetype. The config fields
-that need to set are Jira URL, Jira username, Jira password, Project
-key, and issue type.  Currently http authentication is used to access
-Jira and Jira username and password will be stored as cleartext in the
-LibreNMS database.
+You can have LibreNMS create issues on a Jira instance for critical and warning
+ alerts using either the Jira REST API or webhooks. 
+Custom fields allow you to add any required fields beyond summary and description
+ fields in case mandatory fields are required by your Jira project/issue type 
+ configuration. Custom fields are defined in JSON format but ustom fields allow 
+ you to add any required fields beyond summary and description fields in case 
+ mandatory fields are required by your Jira project/issue type configuration. 
+ Custom fields are defined in JSON format. Currently http authentication is used 
+ to access Jira and Jira username and password will be stored as cleartext in the 
+ LibreNMS database.
+
+### REST API
+The config fields that need to set for Jira REST API are: Jira Open URL, Jira username, 
+Jira password, Project key, and issue type.  
+
+> Note: REST API is that it is only able to open new tickets.
+
+### Webhooks
+The config fields that need to set for webhooks are: Jira Open URL, Jira Close URL,
+ Jira username, Jira password and webhook ID.
+
+> Note: Webhooks allow more control over how alerts are handled in Jira. With webhooks, 
+> recovery messages can be sent to a different URL than alerts. Additionally, a custom 
+> conditional logic can be built using the webhook payload and ID to automatically close 
+> an open ticket if predefined conditions are met.
+
 
 [Jira Issue Types](https://confluence.atlassian.com/adminjiracloud/issue-types-844500742.html)
+[Jira Webhooks](https://developer.atlassian.com/cloud/jira/platform/webhooks/)
 
 **Example:**
 
 | Config | Example |
 | ------ | ------- |
-| URL | <https://myjira.mysite.com> |
 | Project Key | JIRAPROJECTKEY |
 | Issue Type | Myissuetype |
+| Open URL | <https://myjira.mysite.com> /  <https://webhook-open-url> |
+| Close URL | <https://webhook-close-url>  |
 | Jira Username | myjirauser |
 | Jira Password | myjirapass |
+| Enable webhook | ON/OFF |
+| Webhook ID | alert_id |
+| Custom Fileds | {"components":[{"id":"00001"}], "source": "LibrenNMS"} |
+
+## Jira Service Management
+
+Using Jira Service Management LibreNMS integration, LibreNMS forwards alerts to
+Jira Service Management with detailed information. Jira Service Management acts as a dispatcher for
+LibreNMS alerts, determines the right people to notify based on
+on-call schedules and notifies via email, text messages (SMS), phone
+calls and iOS & Android push notifications. Then escalates alerts
+until the alert is acknowledged or closed.
+
+:warning: If the feature isn’t available on your site, keep checking Jira Service Management for updates.
+
+**Example:**
+
+| Config | Example |
+| ------ | ------- |
+| WebHook URL | <https://url/path/to/webhook> |
+
+## LINE Messaging API
+
+[LINE Messaging API Docs](https://developers.line.biz/en/docs/messaging-api/overview/)
+
+Here is the step for setup a LINE bot and using it in LibreNMS.
+
+1. Use your real LINE account register in [developer protal](https://developers.line.biz/).
+
+1. Add a new channel, choose `Messaging API` and continue fill up the forms, note that `Channel name` cannot edit later.
+
+1. Go to "Messaging API" tab of your channel, here listing some important value.
+
+	- `Bot basic ID` and `QR code` is your LINE bot's ID and QR code.
+	- `Channel access token (long-lived)`, will use it in LibreNMS, keep it safe.
+
+1. Use your real Line account add your LINE bot as a friend.
+
+1. Recipient ID can be `groupID`, `userID` or `roomID`, it will be used in LibreNMS to send message to a group or a user. Use the following NodeJS program and `ngrok` for temporally https webhook to listen it.
+
+	[LINE-bot-RecipientFetcher](https://github.com/j796160836/LINE-bot-RecipientFetcher)
+
+1. Run the program and using `ngrok` expose port to public
+
+	```
+	$ node index.js
+	$ ngrok http 3000
+	```
+
+1. Go to "Messaging API" tab of your channel, fill up Webhook URL to `https://<your ngrok domain>/webhook`
+
+
+1. If you want to let LINE bot send message to a yourself, use your real account to send a message to your LINE bot. Program will print out the `userID` in console.
+
+	sample value:  
+	
+	```
+	{"type":"user","userId":"U527xxxxxxxxxxxxxxxxxxxxxxxxxc0ee"}
+	```
+	
+1. If you want to let LINE bot send message to a group, do the following steps.
+
+	- Add your LINE bot into group
+	- Use your real account to send a message to group
+	
+	Program will print out the `groupID` in console, it will be Recipient ID, keep it safe.
+
+	sample value:
+
+	```
+	{"type":"group","groupId":"Ce51xxxxxxxxxxxxxxxxxxxxxxxxxx6ef","userId":"U527xxxxxxxxxxxxxxxxxxxxxxxxxc0ee"} ```
+	```
+
+**Example:**
+
+| Config | Example |
+| ------ | ------- |
+| Access token | fhJ9vH2fsxxxxxxxxxxxxxxxxxxxxlFU= |
+| Recipient (groupID, userID or roomID) | Ce51xxxxxxxxxxxxxxxxxxxxxxxxxx6ef |
 
 ## LINE Notify
 
@@ -353,8 +476,18 @@ LibreNMS database.
 
 ## Mail
 
-The E-Mail transports uses the same email-configuration like the rest of LibreNMS.
-As a small reminder, here is it's configuration directives including defaults:
+The E-Mail transports uses the same email-configuration as the rest of LibreNMS.
+As a small reminder, here is its configuration directives including defaults:
+
+Emails will attach all graphs included with the @signedGraphTag directive.
+If the email format is set to html, they will be embedded.
+To disable attaching images, set email_attach_graphs to false.
+
+!!! setting "alerting/email"
+```bash
+lnms config:set email_html true
+lnms config:set email_attach_graphs false
+```
 
 **Example:**
 
@@ -368,8 +501,9 @@ For using the Matrix transports, you have to create a room on the Matrix-server.
 The provided Auth_token belongs to an user, which is member of this room.
 The Message, sent to the matrix-room can be built from the variables defined in
 [Template-Syntax](Templates.md#syntax) but without the 'alert->' prefix.
-See API-Transport. The variable ``` $msg ``` is contains the result of the Alert template.
-The Matrix-Server URL is cutted before the beginning of the ``_matrix/client/r0/...`` API-part.
+See API-Transport. The variable ``` $msg ``` is contains the result of
+the Alert template.The Matrix-Server URL is cutted before the
+beginning of the ``_matrix/client/r0/...`` API-part.
 
 **Example:**
 
@@ -380,13 +514,39 @@ The Matrix-Server URL is cutted before the beginning of the ``_matrix/client/r0/
 | Auth_token: | MDAyYmxvY2F0aW9uI...z1DCn6lz_uOhtW3XRICg |
 | Message: | Alert: {{ $msg }} https://librenms.example.com |
 
+## Messagebird
+
+LibreNMS can send text messages through Messagebird Rest API transport.
+
+| Config | Example |
+| ------ | ------- |
+| Api Key | Api rest key given in the messagebird dashboard |
+| Originator | E.164 formatted originator |
+| Recipient | E.164 formatted recipient for multi recipents comma separated |
+| Character limit | Range 1..480 (max 3 split messages)  |
+
+## Messagebird Voice
+
+LibreNMS can send messages through Messagebird voice Rest API transport (text to speech).
+
+| Config | Example |
+| ------ | ------- |
+| Api Key | Api rest key given in the messagebird dashboard |
+| Originator | E.164 formatted originator |
+| Recipient | E.164 formatted recipient for multi recipents comma separated |
+| Language | Select box for options  |
+| Spoken voice | Female or Male  |
+| Repeat | X times the message is repeated  |
+
 ## Microsoft Teams
 
-LibreNMS can send alerts to Microsoft Teams [Incoming Webhooks](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook) which are
-then posted to a specific channel. Microsoft recommends using
-[markdown](https://docs.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-format#markdown-formatting-for-connector-cards) formatting for connector cards.
-Administrators can opt to [compose](https://messagecardplayground.azurewebsites.net/)
-the [MessageCard](https://docs.microsoft.com/en-us/outlook/actionable-messages/message-card-reference)
+LibreNMS can send alerts to Microsoft Teams [Incoming
+Webhooks](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)
+which are then posted to a specific channel. Microsoft recommends using
+[markdown](https://docs.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/cards-format#markdown-formatting-for-connector-cards)
+formatting for connector cards. Administrators can opt to
+[compose](https://messagecardplayground.azurewebsites.net/) the
+[MessageCard](https://docs.microsoft.com/en-us/outlook/actionable-messages/message-card-reference)
 themselves using JSON to get the full functionality.
 
 **Example:**
@@ -497,7 +657,7 @@ Here an example using 3 numbers, any amount of numbers is supported:
 
 | Config | Example |
 | ------ | ------- |
-| PlaySMS | <https://localhost/index.php?app=ws> |
+| PlaySMS | <https://localhost/index.php> |
 | User | user1 |
 | Token | MYFANCYACCESSTOKEN |
 | From | My Name |
@@ -645,6 +805,7 @@ either local or international dialling format.
 | Mobiles | +3534567890 <br/> 0834567891 |
 
 ## SMSmode
+
 SMSmode is a SMS provider that can be configured by using the generic API Transport.
 You need a token you can find on your personnal space.
 
@@ -657,7 +818,7 @@ You need a token you can find on your personnal space.
 | Transport type | Api |
 | API Method | POST |
 | API URL | http://api.smsmode.com/http/1.6/sendSMS.do |
-| Options | accessToken=_PUT_HERE_YOUR_TOKEN_<br />numero=_PUT_HERE_DESTS_NUMBER_COMMA_SEPARATED_<br />message={{ $msg }} |
+| Options | accessToken=_PUT_HERE_YOUR_TOKEN_<br/> numero=_PUT_HERE_DESTS_NUMBER_COMMA_SEPARATED_<br />message={{ $msg }} |
 
 ## Splunk
 
@@ -694,6 +855,7 @@ device_override_sysLocation="0", device_notes="", device_port_association_mode="
 device_max_depth="0", device_disable_notify="0", device_location="", 
 device_vrf_lites="Array", device_lat="", device_lng="", - 
 sysObjectID => ""; `
+```
 
 Each alert will be sent as a separate message.
 
@@ -787,7 +949,10 @@ located at: [https://www.twilio.com/docs/api?filter-product=sms](https://www.twi
 
 ## UKFast PSS
 
-UKFast PSS tickets can be raised from alerts using the UKFastPSS transport. This required an [API key](https://my.ukfast.co.uk/applications) with PSS `write` permissions
+UKFast PSS tickets can be raised from alerts using the UKFastPSS
+transport. This required an [API
+key](https://my.ukfast.co.uk/applications) with PSS `write`
+permissions
 
 **Example:**
 
@@ -864,7 +1029,8 @@ Use the Signal Mesenger for Alerts. Run the Signal CLI with the D-Bus option.
 
 ## SMSFeedback
 
-SMSFeedback is a SAAS service, which can be used to deliver Alerts via API, using API url, Username & Password.
+SMSFeedback is a SAAS service, which can be used to deliver Alerts via
+API, using API url, Username & Password.
 
 They can be in international dialling format only.
 
@@ -878,3 +1044,26 @@ They can be in international dialling format only.
 | Password | smsfeedback_password |
 | Mobiles | 71234567890 |
 | Sender name| CIA |
+
+## Zenduty
+
+Leveraging LibreNMS<>Zenduty Integration, users can send new LibreNMS 
+alerts to the right team and notify them based on on-call schedules
+via email, SMS, Phone Calls, Slack, Microsoft Teams and mobile push
+notifications. Zenduty provides engineers with detailed context around 
+the LibreNMS alert along with playbooks and a complete incident command
+framework to triage, remediate and resolve incidents with speed.
+
+Create a [LibreNMS
+Integration](https://docs.zenduty.com/docs/librenms) from inside 
+[Zenduty](https://www.zenduty.com), then copy the Webhook URL from Zenduty
+to LibreNMS.
+
+For a detailed guide with screenshots, refer to the 
+[LibreNMS documentation at Zenduty](https://docs.zenduty.com/docs/librenms).
+
+**Example:**
+
+| Config | Example |
+| ------ | ------- |
+| WebHook URL | <https://www.zenduty.com/api/integration/librenms/integration-key/> |

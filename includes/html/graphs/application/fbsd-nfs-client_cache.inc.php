@@ -1,7 +1,6 @@
 <?php
 
 $name = 'fbsd-nfs-client';
-$app_id = $app['app_id'];
 $scale_min = 0;
 $colours = 'mixed';
 $unit_text = 'per second';
@@ -13,105 +12,105 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => 'attr hits',
-            'ds'       => 'attrhits',
-            'colour'   => '582a72',
+            'descr' => 'attr hits',
+            'ds' => 'attrhits',
+            'colour' => '582a72',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'attr misses',
-            'ds'       => 'attrmisses',
-            'colour'   => '28774f',
+            'descr' => 'attr misses',
+            'ds' => 'attrmisses',
+            'colour' => '28774f',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'lkup hits',
-            'ds'       => 'lkuphits',
-            'colour'   => 'aa6c39',
+            'descr' => 'lkup hits',
+            'ds' => 'lkuphits',
+            'colour' => 'aa6c39',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'lkup misses',
-            'ds'       => 'lkupmisses',
-            'colour'   => '88cc88',
+            'descr' => 'lkup misses',
+            'ds' => 'lkupmisses',
+            'colour' => '88cc88',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioR hits',
-            'ds'       => 'biorhits',
-            'colour'   => 'd46a6a',
+            'descr' => 'bioR hits',
+            'ds' => 'biorhits',
+            'colour' => 'd46a6a',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioR misses',
-            'ds'       => 'biormisses',
-            'colour'   => 'ffd1aa',
+            'descr' => 'bioR misses',
+            'ds' => 'biormisses',
+            'colour' => 'ffd1aa',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioW hits',
-            'ds'       => 'biowhits',
-            'colour'   => '582a72',
+            'descr' => 'bioW hits',
+            'ds' => 'biowhits',
+            'colour' => '582a72',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioW misses',
-            'ds'       => 'biowmisses',
-            'colour'   => 'aa8839',
+            'descr' => 'bioW misses',
+            'ds' => 'biowmisses',
+            'colour' => 'aa8839',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'biorRL hits',
-            'ds'       => 'biorlhits',
-            'colour'   => '28536c',
+            'descr' => 'biorRL hits',
+            'ds' => 'biorlhits',
+            'colour' => '28536c',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioRL misses',
-            'ds'       => 'biorlmisses',
-            'colour'   => '880000',
+            'descr' => 'bioRL misses',
+            'ds' => 'biorlmisses',
+            'colour' => '880000',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioD hits',
-            'ds'       => 'biodhits',
-            'colour'   => 'ff0000',
+            'descr' => 'bioD hits',
+            'ds' => 'biodhits',
+            'colour' => 'ff0000',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'bioD misses',
-            'ds'       => 'biodmisses',
-            'colour'   => '285300',
+            'descr' => 'bioD misses',
+            'ds' => 'biodmisses',
+            'colour' => '285300',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'dirE hits',
-            'ds'       => 'direhits',
-            'colour'   => '2800ff',
+            'descr' => 'dirE hits',
+            'ds' => 'direhits',
+            'colour' => '2800ff',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'dirE misses',
-            'ds'       => 'diremisses',
-            'colour'   => '000080',
+            'descr' => 'dirE misses',
+            'ds' => 'diremisses',
+            'colour' => '000080',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'accs hits',
-            'ds'       => 'accshits',
-            'colour'   => '500000',
+            'descr' => 'accs hits',
+            'ds' => 'accshits',
+            'colour' => '500000',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'accs misses',
-            'ds'       => 'accsmisses',
-            'colour'   => 'aa6511',
+            'descr' => 'accs misses',
+            'ds' => 'accsmisses',
+            'colour' => 'aa6511',
         ],
     ];
 } else {

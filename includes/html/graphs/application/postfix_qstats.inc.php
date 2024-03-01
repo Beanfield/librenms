@@ -1,7 +1,6 @@
 <?php
 
 $name = 'postfix';
-$app_id = $app['app_id'];
 $scale_min = 0;
 $colours = 'mixed';
 $unit_text = '';
@@ -13,33 +12,33 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Incoming',
-            'ds'       => 'incomingq',
-            'colour'   => '582A72',
+            'descr' => 'Incoming',
+            'ds' => 'incomingq',
+            'colour' => '582A72',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Active',
-            'ds'       => 'activeq',
-            'colour'   => '28774F',
+            'descr' => 'Active',
+            'ds' => 'activeq',
+            'colour' => '28774F',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Deferred',
-            'ds'       => 'deferredq',
-            'colour'   => '88CC88',
+            'descr' => 'Deferred',
+            'ds' => 'deferredq',
+            'colour' => '88CC88',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Hold',
-            'ds'       => 'holdq',
-            'colour'   => 'D46A6A',
+            'descr' => 'Hold',
+            'ds' => 'holdq',
+            'colour' => 'D46A6A',
         ],
     ];
 } else {

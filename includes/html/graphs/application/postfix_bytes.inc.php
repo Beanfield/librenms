@@ -1,7 +1,6 @@
 <?php
 
 $name = 'postfix';
-$app_id = $app['app_id'];
 $scale_min = 0;
 $colours = 'mixed';
 $unit_text = 'Bytes';
@@ -13,21 +12,21 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Received',
-            'ds'       => 'bytesr',
-            'colour'   => '582A72',
+            'descr' => 'Received',
+            'ds' => 'bytesr',
+            'colour' => '582A72',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Delivered',
-            'ds'       => 'bytesd',
-            'colour'   => '88CC88',
+            'descr' => 'Delivered',
+            'ds' => 'bytesd',
+            'colour' => '88CC88',
         ],
     ];
 } else {

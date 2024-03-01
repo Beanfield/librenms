@@ -6,11 +6,11 @@ $scale_min = 0;
 $colours = 'mixed';
 $nototal = (($width < 550) ? 1 : 0);
 $unit_text = 'Messages/sec';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'mailscannerV2', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'mailscannerV2', $app->app_id]);
 $array = [
     'msg_rejected' => ['descr' => 'Rejected'],
-    'msg_relay'    => ['descr' => 'Relayed'],
-    'msg_waiting'  => ['descr' => 'Waiting'],
+    'msg_relay' => ['descr' => 'Relayed'],
+    'msg_waiting' => ['descr' => 'Waiting'],
 ];
 
 $i = 0;

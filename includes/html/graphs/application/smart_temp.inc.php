@@ -1,7 +1,6 @@
 <?php
 
 $name = 'smart';
-$app_id = $app['app_id'];
 $unit_text = '';
 $unitlen = 10;
 $bigdescrlen = 25;
@@ -12,18 +11,18 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id, $vars['disk']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id, $vars['disk']]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Temperature_Celsius',
-        'ds'       => 'id194',
+        'descr' => 'Temperature_Celsius',
+        'ds' => 'id194',
     ];
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Airflow_Temperature_Cel',
-        'ds'       => 'id190',
+        'descr' => 'Airflow_Temperature_Cel',
+        'ds' => 'id190',
     ];
 }
 

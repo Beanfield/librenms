@@ -5,11 +5,11 @@ require 'includes/html/graphs/common.inc.php';
 $colours = 'mixed';
 $nototal = (($width < 224) ? 1 : 0);
 $unit_text = 'Seconds PPM';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app->app_id]);
 $array = [
-    'frequency'             => ['descr' => 'Error rate'],
-    'residual_frequency'    => ['descr' => 'Ref clk offset'],
-    'skew'                  => ['descr' => 'Sys clk skew'],
+    'frequency' => ['descr' => 'Error rate'],
+    'residual_frequency' => ['descr' => 'Ref clk offset'],
+    'skew' => ['descr' => 'Sys clk skew'],
 ];
 
 $i = 0;

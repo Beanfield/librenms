@@ -30,6 +30,7 @@ use App\Models\Plugin;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use LibreNMS\Util\Notifications;
 use Log;
 
 class PluginManager
@@ -107,16 +108,26 @@ class PluginManager
      */
     public function call(string $hookType, array $args = [], ?string $plugin = null): Collection
     {
-        try {
-            return $this->hooksFor($hookType, $args, $plugin)
-                ->map(function ($hook) use ($args) {
+        return $this->hooksFor($hookType, $args, $plugin)
+            ->map(function ($hook) use ($args, $hookType) {
+                try {
                     return app()->call([$hook['instance'], 'handle'], $this->fillArgs($args, $hook['plugin_name']));
-                });
-        } catch (Exception $e) {
-            Log::error("Error calling hook $hookType: " . $e->getMessage());
+                } catch (Exception|\Error $e) {
+                    $name = $hook['plugin_name'];
+                    Log::error("Error calling hook $hookType for $name: " . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
 
-            return new Collection;
-        }
+                    if (\LibreNMS\Config::get('plugins.show_errors')) {
+                        throw $e;
+                    }
+
+                    Notifications::create("Plugin $name disabled", "$name caused an error and was disabled, please check with the plugin creator to fix the error. The error can be found in logs/librenms.log", 'plugins', 2);
+                    Plugin::where('plugin_name', $name)->update(['plugin_active' => 0]);
+
+                    return 'HOOK FAILED';
+                }
+            })->filter(function ($hook) {
+                return $hook !== 'HOOK FAILED';
+            });
     }
 
     /**
@@ -167,7 +178,7 @@ class PluginManager
      */
     public function pluginEnabled(string $pluginName): bool
     {
-        return (bool) optional($this->getPlugin($pluginName))->plugin_active;
+        return (bool) $this->getPlugin($pluginName)?->plugin_active;
     }
 
     /**
@@ -189,7 +200,11 @@ class PluginManager
 
         if (! $plugin) {
             try {
-                $plugin = Plugin::create([
+                // plugin should not exist, but check for safety
+                $plugin = Plugin::firstOrCreate([
+                    'version' => 2,
+                    'plugin_name' => $name,
+                ], [
                     'plugin_name' => $name,
                     'plugin_active' => $name !== 'ExamplePlugin',
                     'version' => 2,

@@ -13,6 +13,24 @@
  * @author     LibreNMS Contributors
 */
 
+function show_device_group($device_group_id) {
+    $device_group_name = DB::table('device_groups')->where('id', $device_group_id)->value('name');
+    ?>
+    <div class="panel-heading">
+        <span class="devices-font-bold">
+        <?php
+        if ($device_group_id == 'none') {
+            echo "ungrouped Devices";
+        } elseif ($device_group_id) {
+            echo "Device Group: ";
+        }
+        ?>
+        </span>
+        <?php echo $device_group_name ?>
+    </div>
+    <?php
+}
+
 $pagetitle[] = 'Devices';
 
 if (! isset($vars['format'])) {
@@ -74,8 +92,8 @@ foreach (get_graph_subtypes($type) as $avail_type) {
     $headeroptions .= '<option value="' .
         \LibreNMS\Util\Url::generate($vars, [
             'format' => 'graph_' . $avail_type,
-            'from' => $vars['from'] ?: \LibreNMS\Config::get('time.day'),
-            'to' => $vars['to'] ?: \LibreNMS\Config::get('time.now'),
+            'from' => $vars['from'] ?? \LibreNMS\Config::get('time.day'),
+            'to' => $vars['to'] ?? \LibreNMS\Config::get('time.now'),
         ]) . '" ' . $is_selected . '>' . $display_type . '</option>';
 }
 $headeroptions .= '</select>';
@@ -133,8 +151,8 @@ if ($format == 'graph') {
     }
 
     if (! empty($vars['searchquery'])) {
-        $where .= ' AND (sysName LIKE ? OR hostname LIKE ? OR hardware LIKE ? OR os LIKE ? OR location LIKE ?)';
-        $sql_param += array_fill(count($param), 5, '%' . $vars['searchquery'] . '%');
+        $where .= ' AND (sysName LIKE ? OR hostname LIKE ? OR display LIKE ? OR hardware LIKE ? OR os LIKE ? OR location LIKE ?)';
+        $sql_param += array_fill(0, 6, '%' . $vars['searchquery'] . '%');
     }
     if (! empty($vars['os'])) {
         $where .= ' AND os = ?';
@@ -199,6 +217,7 @@ if ($format == 'graph') {
         $where = substr($where, 0, strlen($where) - 3);
         $where .= ' )';
     }
+    show_device_group($vars['group']);
 
     $query = 'SELECT * FROM `devices` LEFT JOIN `locations` ON `devices`.`location_id` = `locations`.`id` WHERE 1';
 
@@ -289,6 +308,7 @@ if ($format == 'graph') {
         </div>
     </div>
     <div class="table-responsive">
+        <?php show_device_group($vars['group']); ?>
         <table id="devices" class="table table-hover table-condensed table-striped">
             <thead>
                 <tr>
@@ -344,35 +364,35 @@ if ($format == 'graph') {
             },
             post: function () {
                 return {
-                    format: ' <?php echo $vars['format']; ?>',
-                    searchPhrase: '<?php echo htmlspecialchars($vars['searchquery']); ?>',
-                    os: '<?php echo $vars['os']; ?>',
-                    version: '<?php echo $vars['version']; ?>',
-                    hardware: '<?php echo $vars['hardware']; ?>',
-                    features: '<?php echo $vars['features']; ?>',
-                    location: '<?php echo $vars['location']; ?>',
-                    type: '<?php echo $vars['type']; ?>',
-                    state: '<?php echo $vars['state']; ?>',
-                    disabled: '<?php echo $vars['disabled']; ?>',
-                    ignore: '<?php echo $vars['ignore']; ?>',
-                    disable_notify: '<?php echo $vars['disable_notify']; ?>',
-                    group: '<?php echo $vars['group']; ?>',
-                    poller_group: '<?php echo $vars['poller_group']; ?>',
-                    device_id: '<?php echo $vars['device_id']; ?>',
+                    format: '<?php echo htmlspecialchars($vars['format']); ?>',
+                    searchPhrase: '<?php echo htmlspecialchars($vars['searchquery'] ?? ''); ?>',
+                    os: '<?php echo htmlspecialchars($vars['os'] ?? ''); ?>',
+                    version: '<?php echo htmlspecialchars($vars['version'] ?? ''); ?>',
+                    hardware: '<?php echo htmlspecialchars($vars['hardware'] ?? ''); ?>',
+                    features: '<?php echo htmlspecialchars($vars['features'] ?? ''); ?>',
+                    location: '<?php echo htmlspecialchars($vars['location'] ?? ''); ?>',
+                    type: '<?php echo htmlspecialchars($vars['type'] ?? ''); ?>',
+                    state: '<?php echo htmlspecialchars($vars['state'] ?? ''); ?>',
+                    disabled: '<?php echo htmlspecialchars($vars['disabled'] ?? ''); ?>',
+                    ignore: '<?php echo htmlspecialchars($vars['ignore'] ?? ''); ?>',
+                    disable_notify: '<?php echo htmlspecialchars($vars['disable_notify'] ?? ''); ?>',
+                    group: '<?php echo htmlspecialchars($vars['group'] ?? ''); ?>',
+                    poller_group: '<?php echo htmlspecialchars($vars['poller_group'] ?? ''); ?>',
+                    device_id: '<?php echo htmlspecialchars($vars['device_id'] ?? ''); ?>',
                 };
             },
             url: "<?php echo url('/ajax/table/device') ?>"
         });
 
         <?php
-        if (! isset($vars['searchbar']) && $vars['searchbar'] != 'hide') {
+        if (empty($vars['searchbar']) || $vars['searchbar'] != 'hide') {
             ?>
         $(".devices-headers-table-menu").append(
             "<div class='pull-left'>" +
             "<form method='post' action='' class='form-inline devices-search-header' role='form'>" +
             "<?php echo addslashes(csrf_field()) ?>"+
             "<div class='form-group'>" +
-            "<input type='text' name='searchquery' id='searchquery' value=''<?php echo $vars['searchquery']; ?>'' class='form-control' placeholder='Search'>" +
+            "<input type='text' name='searchquery' id='searchquery' value='<?php echo htmlspecialchars($vars['searchquery'] ?? ''); ?>' class='form-control' placeholder='Search'>" +
             "</div>" +
             "<div class='form-group'><?php echo $state_selection ?></div>" +
             "<div class='form-group'><select name='os' id='os' class='form-control'></select></div>" +
@@ -383,7 +403,7 @@ if ($format == 'graph') {
             "<div class='form-group'><select name='type' id='device-type' class='form-control'></select></div>" +
             "<input type='submit' class='btn btn-info' value='Search'>" +
             "<a href='<?php echo \LibreNMS\Util\Url::generate(array_diff_key($vars, ['_token' => 1])) ?>' title='Update the browser URL to reflect the search criteria.' class='btn btn-default'>Update URL</a>" +
-            "<a href='<?php echo \LibreNMS\Util\Url::generate(['page' => 'devices', 'section' => $vars['section'], 'bare' => $vars['bare']]) ?>' title='Reset criteria to default.' class='btn btn-default'>Reset</a>" +
+            "<a href='<?php echo \LibreNMS\Util\Url::generate(['page' => 'devices', 'section' => $vars['section'] ?? '', 'bare' => $vars['bare'] ?? '']) ?>' title='Reset criteria to default.' class='btn btn-default'>Reset</a>" +
             "</form>" +
             "</div>"
         );

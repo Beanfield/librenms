@@ -12,8 +12,15 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
     }
 
     $agent_start = microtime(true);
-    $poller_target = \LibreNMS\Util\Rewrite::addIpv6Brackets(Device::pollerTarget($device['hostname']));
-    $agent = fsockopen($poller_target, $agent_port, $errno, $errstr, \LibreNMS\Config::get('unix-agent.connection-timeout'));
+    $agent = null;
+    try {
+        $poller_target = \LibreNMS\Util\Rewrite::addIpv6Brackets(Device::pollerTarget($device['hostname']));
+        $agent = @fsockopen($poller_target, $agent_port, $errno, $errstr, \LibreNMS\Config::get('unix-agent.connection-timeout'));
+    } catch (ErrorException $e) {
+        echo $e->getMessage() . PHP_EOL; // usually connection timed out
+
+        return;
+    }
 
     if (! $agent) {
         echo 'Connection to UNIX agent failed on port ' . $agent_port . '.';
@@ -21,6 +28,7 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
         // Set stream timeout (for timeouts during agent  fetch
         stream_set_timeout($agent, \LibreNMS\Config::get('unix-agent.read-timeout'));
         $agentinfo = stream_get_meta_data($agent);
+        $agent_raw = '';
 
         // fetch data while not eof and not timed-out
         while ((! feof($agent)) && (! $agentinfo['timed_out'])) {
@@ -55,9 +63,12 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
             'ceph',
             'mysql',
             'nginx',
+            'os-updates',
+            'php-fpm',
             'powerdns',
             'powerdns-recursor',
             'proxmox',
+            'redis',
             'rrdcached',
             'tinydns',
             'gpsd',
@@ -66,14 +77,17 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
         global $agent_data;
         $agent_data = [];
         foreach (explode('<<<', $agent_raw) as $section) {
-            [$section, $data] = explode('>>>', $section);
-            [$sa, $sb] = explode('-', $section, 2);
+            if (empty($section)) {
+                continue;
+            }
 
+            [$section, $data] = explode('>>>', $section);
             if (in_array($section, $agentapps)) {
                 $agent_data['app'][$section] = trim($data);
             }
 
-            if (! empty($sa) && ! empty($sb)) {
+            if (str_contains($section, '-')) {
+                [$sa, $sb] = explode('-', $section, 2);
                 $agent_data[$sa][$sb] = trim($data);
             } else {
                 $agent_data[$section] = trim($data);
@@ -99,9 +113,8 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
             dbDelete('processes', 'device_id = ?', [$device['device_id']]);
             $data = [];
             foreach (explode("\n", $agent_data['ps']) as $process) {
-                $process = preg_replace('/\((.*),([0-9]*),([0-9]*),([0-9\:\.\-]*),([0-9]*)\)\ (.*)/', '\\1|\\2|\\3|\\4|\\5|\\6', $process);
-                [$user, $vsz, $rss, $cputime, $pid, $command] = explode('|', $process, 6);
-                if (! empty($command)) {
+                if (preg_match('/\((.*),([0-9]*),([0-9]*),([-0-9:.]*),([0-9]*)\) (.+)/', $process, $process_matches)) {
+                    [, $user, $vsz, $rss, $cputime, $pid, $command] = $process_matches;
                     $data[] = ['device_id' => $device['device_id'], 'pid' => $pid, 'user' => $user, 'vsz' => $vsz, 'rss' => $rss, 'cputime' => $cputime, 'command' => $command];
                 }
             }
@@ -124,7 +137,7 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
                     $days = floor($cputime / 86400);
                     $hours = str_pad(floor(($cputime / 3600) % 24), 2, '0', STR_PAD_LEFT);
                     $minutes = str_pad(floor(($cputime / 60) % 60), 2, '0', STR_PAD_LEFT);
-                    $seconds = str_pad(($cputime % 60), 2, '0', STR_PAD_LEFT);
+                    $seconds = str_pad($cputime % 60, 2, '0', STR_PAD_LEFT);
                     $cputime = ($days > 0 ? "$days-" : '') . "$hours:$minutes:$seconds";
                     $data[] = ['device_id' => $device['device_id'], 'pid' => $processId, 'user' => $user, 'vsz' => $PageFileUsage + $WorkingSetSize, 'rss' => $WorkingSetSize, 'cputime' => $cputime, 'command' => $process_name];
                 }
@@ -135,7 +148,7 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
             echo "\n";
         }
 
-        foreach (array_keys($agent_data['app']) as $key) {
+        foreach (array_keys($agent_data['app'] ?? []) as $key) {
             if (file_exists("includes/polling/applications/$key.inc.php")) {
                 d_echo("Enabling $key for " . $device['hostname'] . " if not yet enabled\n");
 
@@ -150,7 +163,7 @@ if ($device['os_group'] == 'unix' || $device['os'] == 'windows') {
 
         // memcached
         if (! empty($agent_data['app']['memcached'])) {
-            $agent_data['app']['memcached'] = unserialize($agent_data['app']['memcached']);
+            $agent_data['app']['memcached'] = json_decode($agent_data['app']['memcached'], true);
             foreach ($agent_data['app']['memcached'] as $memcached_host => $memcached_data) {
                 if (dbFetchCell('SELECT COUNT(*) FROM `applications` WHERE `device_id` = ? AND `app_type` = ? AND `app_instance` = ?', [$device['device_id'], 'memcached', $memcached_host]) == '0') {
                     echo "Found new application 'Memcached' $memcached_host\n";

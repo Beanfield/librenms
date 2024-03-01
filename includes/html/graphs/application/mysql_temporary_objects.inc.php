@@ -2,12 +2,12 @@
 
 require 'includes/html/graphs/common.inc.php';
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app->app_id]);
 
 $array = [
     'CTMPDTs' => 'disk tables',
-    'CTMPTs'  => 'tables',
-    'CTMPFs'  => 'files',
+    'CTMPTs' => 'tables',
+    'CTMPFs' => 'files',
 ];
 
 $i = 0;

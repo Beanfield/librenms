@@ -29,14 +29,6 @@ $trans = snmpwalk_cache_multi_oid($device, 'eltPhdTransceiverInfoEntry', [], 'EL
 echo ' entAliasMappingIdentifier';
 $mapping = snmpwalk_cache_multi_oid($device, 'entAliasMappingIdentifier', [], 'ENTITY-MIB:IF-MIB');
 
-function normData($par = null)
-{
-    $tmp = str_replace([':', ' '], '', trim(strtoupper($par)));
-    $ret = preg_match('/^[0-9A-F]+$/', $tmp) ? hex2str($tmp) : $par; //if string is pure hex, convert to ascii
-
-    return $ret;
-}
-
 foreach ($trans as $index => $data) {
     unset($connectedto);
     foreach ($mapping as $ekey => $edata) {
@@ -46,16 +38,16 @@ foreach ($trans as $index => $data) {
     }
     if ($connectedto) {
         $entity_array[] = [
-            'entPhysicalIndex'        => $index,
-            'entPhysicalDescr'        => $data['eltPhdTransceiverInfoType'],
-            'entPhysicalClass'        => 'sfp-cage',
-            'entPhysicalName'         => strtoupper($data['eltPhdTransceiverInfoConnectorType']),
-            'entPhysicalModelName'    => normData($data['eltPhdTransceiverInfoPartNumber']),
-            'entPhysicalSerialNum'    => $data['eltPhdTransceiverInfoSerialNumber'],
-            'entPhysicalContainedIn'  => $connectedto,
-            'entPhysicalMfgName'      => $data['eltPhdTransceiverInfoVendorName'],
-            'entPhysicalHardwareRev'  => normData($data['eltPhdTransceiverInfoVendorRev']),
-            'entPhysicalIsFRU'        => 'true',
+            'entPhysicalIndex' => $index,
+            'entPhysicalDescr' => $data['eltPhdTransceiverInfoType'],
+            'entPhysicalClass' => 'sfp-cage',
+            'entPhysicalName' => strtoupper($data['eltPhdTransceiverInfoConnectorType']),
+            'entPhysicalModelName' => \LibreNMS\OS\EltexMes23xx::normData($data['eltPhdTransceiverInfoPartNumber']),
+            'entPhysicalSerialNum' => $data['eltPhdTransceiverInfoSerialNumber'],
+            'entPhysicalContainedIn' => $connectedto,
+            'entPhysicalMfgName' => $data['eltPhdTransceiverInfoVendorName'],
+            'entPhysicalHardwareRev' => \LibreNMS\OS\EltexMes23xx::normData($data['eltPhdTransceiverInfoVendorRev']),
+            'entPhysicalIsFRU' => 'true',
         ];
     }
 }

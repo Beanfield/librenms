@@ -26,6 +26,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use LibreNMS\Alerting\QueryBuilderFluentParser;
 use Permissions;
 
@@ -64,7 +65,7 @@ class DeviceGroup extends BaseModel
     public function updateDevices()
     {
         if ($this->type == 'dynamic') {
-            $this->devices()->sync(QueryBuilderFluentParser::fromJSON($this->rules)->toQuery()
+            $this->devices()->sync(QueryBuilderFluentParser::fromJson($this->rules)->toQuery()
                 ->distinct()->pluck('devices.device_id'));
         }
     }
@@ -89,7 +90,7 @@ class DeviceGroup extends BaseModel
             return $query;
         }
 
-        return $query->whereIn('id', Permissions::deviceGroupsForUser($user));
+        return $query->whereIntegerInRaw('id', Permissions::deviceGroupsForUser($user));
     }
 
     public function scopeInServiceTemplate($query, $serviceTemplate)
@@ -116,6 +117,11 @@ class DeviceGroup extends BaseModel
 
     // ---- Define Relationships ----
 
+    public function alertSchedules(): MorphToMany
+    {
+        return $this->morphToMany(\App\Models\AlertSchedule::class, 'alert_schedulable', 'alert_schedulables', 'schedule_id', 'schedule_id');
+    }
+
     public function devices(): BelongsToMany
     {
         return $this->belongsToMany(\App\Models\Device::class, 'device_group_device', 'device_group_id', 'device_id');
@@ -123,7 +129,9 @@ class DeviceGroup extends BaseModel
 
     public function services(): BelongsToMany
     {
-        return $this->belongsToMany(\App\Models\Service::class, 'device_group_device', 'device_group_id', 'device_id');
+        // $parentKey='id', $relatedKey='device_id' is required to generate the right SQL query.
+        // Otherwise the primaryKey in Service.php will be used
+        return $this->belongsToMany(\App\Models\Service::class, 'device_group_device', 'device_group_id', 'device_id', 'id', 'device_id');
     }
 
     public function users(): BelongsToMany

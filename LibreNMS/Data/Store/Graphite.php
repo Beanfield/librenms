@@ -43,7 +43,9 @@ class Graphite extends BaseDatastore
         $host = Config::get('graphite.host');
         $port = Config::get('graphite.port', 2003);
         try {
-            $this->connection = $socketFactory->createClient("$host:$port");
+            if (self::isEnabled() && $host && $port) {
+                $this->connection = $socketFactory->createClient("$host:$port");
+            }
         } catch (\Exception $e) {
             d_echo($e->getMessage());
         }
@@ -101,21 +103,18 @@ class Graphite extends BaseDatastore
         $hostname = preg_replace('/\./', '_', $device['hostname']);
         $measurement = preg_replace(['/\./', '/\//'], '_', $measurement);
         $measurement = preg_replace('/\|/', '.', $measurement);
-        $measurement_name = preg_replace('/\./', '_', $tags['rrd_name']);
-        if (is_array($measurement_name)) {
-            $ms_name = implode('.', $measurement_name);
-        } else {
-            $ms_name = $measurement_name;
-        }
+
+        $measurement_name = preg_replace('/\./', '_', $tags['rrd_name'] ?? '');
+        $ms_name = is_array($measurement_name) ? implode('.', $measurement_name) : $measurement_name;
         // remove the port-id tags from the metric
         if (preg_match('/^port-id\d+/', $ms_name)) {
             $ms_name = '';
         }
 
         foreach ($fields as $k => $v) {
-            // Send zero for fields without values
-            if (empty($v)) {
-                $v = 0;
+            // Skip fields without values
+            if (is_null($v)) {
+                continue;
             }
             $metric = implode('.', array_filter([$this->prefix, $hostname, $measurement, $ms_name, $k]));
             $this->writeData($metric, $v, $timestamp);

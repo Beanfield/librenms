@@ -6,22 +6,22 @@ $scale_min = 0;
 $colours = 'mixed';
 $nototal = (($width < 224) ? 1 : 0);
 $unit_text = 'Packets/sec';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'powerdns', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'powerdns', $app->app_id]);
 $array = [
     'q_tcpAnswers' => [
-        'descr'  => 'TCP Answers',
+        'descr' => 'TCP Answers',
         'colour' => '008800FF',
     ],
     'q_tcpQueries' => [
-        'descr'  => 'TCP Queries',
+        'descr' => 'TCP Queries',
         'colour' => '00FF00FF',
     ],
     'q_udpAnswers' => [
-        'descr'  => 'UDP Answers',
+        'descr' => 'UDP Answers',
         'colour' => '336699FF',
     ],
     'q_udpQueries' => [
-        'descr'  => 'UDP Queries',
+        'descr' => 'UDP Queries',
         'colour' => '6699CCFF',
     ],
 ];

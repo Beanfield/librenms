@@ -1,35 +1,28 @@
 <?php
 
-$databases = get_postgres_databases($device['device_id']);
-
 $link_array = [
-    'page'   => 'device',
+    'page' => 'device',
     'device' => $device['device_id'],
-    'tab'    => 'apps',
-    'app'    => 'postgres',
+    'tab' => 'apps',
+    'app' => 'postgres',
 ];
 
 print_optionbar_start();
 
 echo generate_link('Total', $link_array);
 echo '| DBs:';
-$db_int = 0;
-while (isset($databases[$db_int])) {
-    $db = $databases[$db_int];
-    $label = $db;
+$databases = $app->data['databases'] ?? [];
+sort($databases);
+foreach ($databases as $index => $db) {
+    $label = $vars['database'] == $db
+        ? '<span class="pagemenu-selected">' . $db . '</span>'
+        : $db;
 
-    if ($vars['database'] == $db) {
-        $label = '<span class="pagemenu-selected">' . $db . '</span>';
+    echo generate_link($label, $link_array, ['database' => $db]);
+
+    if ($index < (count($databases) - 1)) {
+        echo ', ';
     }
-
-    $db_int++;
-
-    $append = '';
-    if (isset($databases[$db_int])) {
-        $append = ', ';
-    }
-
-    echo generate_link($label, $link_array, ['database'=>$db]) . $append;
 }
 
 print_optionbar_end();

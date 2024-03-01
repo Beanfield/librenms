@@ -38,7 +38,9 @@ ini_set('display_errors', '1');
 
 $snmpsim = new Snmpsim('127.1.6.2', 1162, null);
 if (getenv('SNMPSIM')) {
-    $snmpsim->fork(6);
+    if (! getenv('GITHUB_ACTIONS')) {
+        $snmpsim->fork(6);
+    }
 
     // make PHP hold on a reference to $snmpsim so it doesn't get destructed
     register_shutdown_function(function (Snmpsim $ss) {
@@ -83,3 +85,5 @@ if (getenv('DBTEST')) {
 
 Config::reload(); // reload the config including database config
 \LibreNMS\Util\OS::updateCache(true); // Force update of OS Cache
+
+app()->terminate(); // destroy the bootstrap Laravel application

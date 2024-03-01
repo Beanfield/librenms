@@ -1,7 +1,6 @@
 <?php
 
 $name = 'smart';
-$app_id = $app['app_id'];
 $unit_text = '';
 $unitlen = 20;
 $bigdescrlen = 10;
@@ -12,28 +11,28 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id, $vars['disk']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id, $vars['disk']]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Extended',
-        'ds'       => 'extended',
+        'descr' => 'Extended',
+        'ds' => 'extended',
     ];
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Short',
-        'ds'       => 'short',
+        'descr' => 'Short',
+        'ds' => 'short',
     ];
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Selective',
-        'ds'       => 'selective',
+        'descr' => 'Selective',
+        'ds' => 'selective',
     ];
     $rrd_list[] = [
         'filename' => $rrd_filename,
-        'descr'    => 'Conveyance',
-        'ds'       => 'conveyance',
+        'descr' => 'Conveyance',
+        'ds' => 'conveyance',
     ];
 }
 

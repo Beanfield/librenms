@@ -81,7 +81,7 @@ if (Auth::user()->hasGlobalAdmin()) {
 
         if (Config::get('rancid_repo_type') == 'svn') {
             if (function_exists('svn_log') && in_array($vars['rev'], $revlist)) {
-                [$diff, $errors] = svn_diff($rancid_file, ($vars['rev'] - 1), $rancid_file, $vars['rev']);
+                [$diff, $errors] = svn_diff($rancid_file, $vars['rev'] - 1, $rancid_file, $vars['rev']);
                 if (! $diff) {
                     $text = 'No Difference';
                 } else {
@@ -94,7 +94,17 @@ if (Auth::user()->hasGlobalAdmin()) {
                     fclose($errors);
                 }
             } else {
-                $fh = fopen($rancid_file, 'r') or exit("Can't open file");
+                $fh = fopen($rancid_file, 'r');
+                if ($fh === false) {
+                    echo '<div class="alert alert-warning">Error: Cannot open Rancid configuration file for this device.</div>';
+
+                    return;
+                }
+                if (filesize($rancid_file) == 0) {
+                    echo '<div class="alert alert-warning">Error: Rancid configuration file for this device is empty.</div>';
+
+                    return;
+                }
                 $text = fread($fh, filesize($rancid_file));
                 fclose($fh);
             }
@@ -110,7 +120,17 @@ if (Auth::user()->hasGlobalAdmin()) {
                     $previous_config = $vars['rev'] . '^';
                 }
             } else {
-                $fh = fopen($rancid_file, 'r') or exit("Can't open file");
+                $fh = fopen($rancid_file, 'r');
+                if ($fh === false) {
+                    echo '<div class="alert alert-warning">Error: Cannot open Rancid configuration file for this device.</div>';
+
+                    return;
+                }
+                if (filesize($rancid_file) == 0) {
+                    echo '<div class="alert alert-warning">Error: Rancid configuration file for this device is empty.</div>';
+
+                    return;
+                }
                 $text = fread($fh, filesize($rancid_file));
                 fclose($fh);
             }
@@ -130,8 +150,7 @@ if (Auth::user()->hasGlobalAdmin()) {
         // Try with hostname as set in librenms first
         $oxidized_hostname = $device['hostname'];
         // fetch info about the node and then a list of versions for that node
-        $node_info = json_decode(file_get_contents(Config::get('oxidized.url') . '/node/show/' . $oxidized_hostname . '?format=json'), true);
-
+        $node_info = json_decode((new \App\ApiClients\Oxidized())->getContent('/node/show/' . $oxidized_hostname . '?format=json'), true);
         if (! empty($node_info['last']['start'])) {
             $node_info['last']['start'] = date(Config::get('dateformat.long'), strtotime($node_info['last']['start']));
         }
@@ -150,12 +169,12 @@ if (Auth::user()->hasGlobalAdmin()) {
 
             // Try Oxidized again with new hostname, if it has changed
             if ($oxidized_hostname != $device['hostname']) {
-                $node_info = json_decode(file_get_contents(Config::get('oxidized.url') . '/node/show/' . $oxidized_hostname . '?format=json'), true);
+                $node_info = json_decode((new \App\ApiClients\Oxidized())->getContent('/node/show/' . $oxidized_hostname . '?format=json'), true);
             }
         }
 
         if (Config::get('oxidized.features.versioning') === true) { // fetch a list of versions
-            $config_versions = json_decode(file_get_contents(Config::get('oxidized.url') . '/node/version?node_full=' . (isset($node_info['full_name']) ? $node_info['full_name'] : $oxidized_hostname) . '&format=json'), true);
+            $config_versions = json_decode((new \App\ApiClients\Oxidized())->getContent('/node/version?node_full=' . (isset($node_info['full_name']) ? $node_info['full_name'] : $oxidized_hostname) . '&format=json'), true);
         }
 
         $config_total = 1;
@@ -167,7 +186,7 @@ if (Auth::user()->hasGlobalAdmin()) {
             // populate current_version
             if (isset($_POST['config'])) {
                 [$oid,$date,$version] = explode('|', htmlspecialchars($_POST['config']));
-                $current_config = ['oid'=>$oid, 'date'=>$date, 'version'=>$version];
+                $current_config = ['oid' => $oid, 'date' => $date, 'version' => $version];
             } else { // no version selected
                 $current_config = ['oid' => $config_versions[0]['oid'], 'date' => $config_versions[0]['date'], 'version' => $config_total];
             }
@@ -176,7 +195,7 @@ if (Auth::user()->hasGlobalAdmin()) {
             if (isset($_POST['diff'])) { // diff requested
                 [$oid,$date,$version] = explode('|', $_POST['prevconfig']);
                 if (isset($oid) && $oid != $current_config['oid']) {
-                    $previous_config = ['oid'=>$oid, 'date'=>$date, 'version'=>$version];
+                    $previous_config = ['oid' => $oid, 'date' => $date, 'version' => $version];
                 } elseif ($current_config['version'] != 1) {  // assume previous, unless current is first config
                     foreach ($config_versions as $key => $version) {
                         if ($version['oid'] == $current_config['oid']) {
@@ -193,19 +212,19 @@ if (Auth::user()->hasGlobalAdmin()) {
             }
 
             if (isset($previous_config)) {
-                $url = Config::get('oxidized.url') . '/node/version/diffs?node=' . $oxidized_hostname;
+                $uri = '/node/version/diffs?node=' . $oxidized_hostname;
                 if (! empty($node_info['group'])) {
-                    $url .= '&group=' . $node_info['group'];
+                    $uri .= '&group=' . $node_info['group'];
                 }
-                $url .= '&oid=' . urlencode($current_config['oid']) . '&date=' . urlencode($current_config['date']) . '&num=' . urlencode($current_config['version']) . '&oid2=' . $previous_config['oid'] . '&format=text';
+                $uri .= '&oid=' . urlencode($current_config['oid']) . '&date=' . urlencode($current_config['date']) . '&num=' . urlencode($current_config['version']) . '&oid2=' . $previous_config['oid'] . '&format=text';
 
-                $text = file_get_contents($url); // fetch diff
+                $text = (new \App\ApiClients\Oxidized())->getContent($uri); // fetch diff
             } else {
                 // fetch current_version
-                $text = file_get_contents(Config::get('oxidized.url') . '/node/version/view?node=' . $oxidized_hostname . (! empty($node_info['group']) ? '&group=' . $node_info['group'] : '') . '&oid=' . urlencode($current_config['oid']) . '&date=' . urlencode($current_config['date']) . '&num=' . urlencode($current_config['version']) . '&format=text');
+                $text = (new \App\ApiClients\Oxidized())->getContent('/node/version/view?node=' . $oxidized_hostname . (! empty($node_info['group']) ? '&group=' . $node_info['group'] : '') . '&oid=' . urlencode($current_config['oid']) . '&date=' . urlencode($current_config['date']) . '&num=' . urlencode($current_config['version']) . '&format=text');
             }
         } else {  // just fetch the only version
-            $text = file_get_contents(Config::get('oxidized.url') . '/node/fetch/' . (! empty($node_info['group']) ? $node_info['group'] . '/' : '') . $oxidized_hostname);
+            $text = (new \App\ApiClients\Oxidized())->getContent('/node/fetch/' . (! empty($node_info['group']) ? $node_info['group'] . '/' : '') . $oxidized_hostname);
         }
 
         if (is_array($node_info) || $config_total > 1) {

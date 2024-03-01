@@ -23,7 +23,6 @@ use LibreNMS\Exceptions\JsonAppException;
 use LibreNMS\RRD\RrdDefinition;
 
 $name = 'mailcow-postfix';
-$app_id = $app['app_id'];
 
 try {
     $mailcow_postfix = json_app_get($device, $name);
@@ -33,8 +32,6 @@ try {
 
     return;
 }
-
-$rrd_name = ['app', $name, $app_id];
 
 $rrd_def = RrdDefinition::make()
     ->addDataset('received', 'GAUGE', 0)
@@ -71,6 +68,11 @@ $fields = [
     'recipienthostsdomains' => $mailcow_postfix['data']['recipienthostsdomains'],
 ];
 
-$tags = compact('name', 'app_id', 'rrd_name', 'rrd_def');
+$tags = [
+    'name' => $name,
+    'app_id' => $app->app_id,
+    'rrd_name' => ['app', $name, $app->app_id],
+    'rrd_def' => $rrd_def,
+];
 data_update($device, 'app', $tags, $fields);
 update_application($app, 'OK', $fields);

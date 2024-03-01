@@ -130,28 +130,23 @@ set_notifiable_result() {
 #   Exit-Code: 0 >= min ver, 1 < min ver
 #######################################
 check_dependencies() {
-    local branch ver_56 ver_71 ver_72 ver_73 python3 python_deps phpver pythonver old_branches msg
+    local branch ver_71 ver_72 ver_73 ver_81 python3 python_deps phpver pythonver old_branches msg
 
     branch=$(git rev-parse --abbrev-ref HEAD)
     scripts/check_requirements.py > /dev/null 2>&1 || pip3 install -r requirements.txt > /dev/null 2>&1
 
-    ver_56=$(php -r "echo (int)version_compare(PHP_VERSION, '5.6.4', '<');")
     ver_71=$(php -r "echo (int)version_compare(PHP_VERSION, '7.1.3', '<');")
     ver_72=$(php -r "echo (int)version_compare(PHP_VERSION, '7.2.5', '<');")
     ver_73=$(php -r "echo (int)version_compare(PHP_VERSION, '7.3', '<');")
+    ver_81=$(php -r "echo (int)version_compare(PHP_VERSION, '8.1', '<');")
     python3=$(python3 -c "import sys;print(int(sys.version_info < (3, 4)))" 2> /dev/null)
     python_deps=$("${LIBRENMS_DIR}/scripts/check_requirements.py" > /dev/null 2>&1; echo $?)
     phpver="master"
     pythonver="master"
 
-    old_branches="^(php53|php56|php71-python2|php72)$"
-    if [[ $branch =~ $old_branches ]] && [[ "$ver_73" == "0" && "$python3" == "0" && "$python_deps" == "0" ]]; then
+    old_branches="^(php53|php56|php71-python2|php72|php73)$"
+    if [[ $branch =~ $old_branches ]] && [[ "$ver_81" == "0" && "$python3" == "0" && "$python_deps" == "0" ]]; then
         status_run "Supported PHP and Python version, switched back to master branch." 'git checkout master'
-    elif [[ "$ver_56" != "0" ]]; then
-        phpver="php53"
-        if [[ "$branch" != "php53" ]]; then
-            status_run "Unsupported PHP version, switched to php53 branch." 'git checkout php53'
-        fi
     elif [[ "$ver_71" != "0" ]]; then
         phpver="php56"
         if [[ "$branch" != "php56" ]]; then
@@ -178,6 +173,11 @@ check_dependencies() {
         phpver="php72"
         if [[ "$branch" != "php72" ]]; then
             status_run "Unsupported PHP version, switched to php72 branch." 'git checkout php72'
+        fi
+    elif [[ "$ver_81" != "0" ]]; then
+        phpver="php73"
+        if [[ "$branch" != "php73" ]]; then
+            status_run "Unsupported PHP version, switched to php73 branch." 'git checkout php73'
         fi
     fi
 
@@ -339,7 +339,7 @@ main () {
             no-code-update)
                 # Updates of the code are disabled, just check for schema updates
                 # and clean up the db.
-                status_run 'Updating SQL-Schema' 'php includes/sql-schema/update.php'
+                status_run 'Updating SQL-Schema' './lnms migrate --force --no-interaction --isolated'
                 status_run 'Cleaning up DB' "'$DAILY_SCRIPT' cleanup"
             ;;
             post-pull)
@@ -365,12 +365,11 @@ main () {
                 fi
 
                 # List all tasks to do after pull in the order of execution
-                status_run 'Updating SQL-Schema' 'php includes/sql-schema/update.php'
+                status_run 'Updating SQL-Schema' './lnms migrate --force --no-interaction --isolated'
                 status_run 'Updating submodules' "$DAILY_SCRIPT submodules"
                 status_run 'Cleaning up DB' "$DAILY_SCRIPT cleanup"
                 status_run 'Fetching notifications' "$DAILY_SCRIPT notifications"
                 status_run 'Caching PeeringDB data' "$DAILY_SCRIPT peeringdb"
-                status_run 'Caching Mac OUI data' "$DAILY_SCRIPT mac_oui"
             ;;
             cleanup)
                 # Cleanups
@@ -388,6 +387,7 @@ main () {
                                "alert_log"
                                "rrd_purge"
                                "ports_fdb"
+                               "ports_nac"
                                "route"
                                "ports_purge")
                 call_daily_php "${options[@]}"
@@ -404,10 +404,6 @@ main () {
             ;;
             peeringdb)
                 options=("peeringdb")
-                call_daily_php "${options[@]}"
-            ;;
-            mac_oui)
-                options=("mac_oui")
                 call_daily_php "${options[@]}"
         esac
     fi

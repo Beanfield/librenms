@@ -16,172 +16,147 @@ $entity_array = [];
 echo 'Ciena SDS';
 
 // Chassis stuff
-$cienaCesChassisGlobal = snmpwalk_cache_multi_oid(
+$chassis_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisGlobal',
-    $cienaCesChassisGlobal,
+    [],
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
-$cienaCesChassisPlatform = snmpwalk_cache_multi_oid(
+$chassis_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisPlatform',
-    $cienaCesChassisPlatform,
+    $chassis_array,
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
-$cienaCesChassisIDP = snmpwalk_cache_multi_oid(
+$chassis_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisIDP',
-    $cienaCesChassisIDP,
+    $chassis_array,
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
-);
-
-$chassis_array = array_replace_recursive(
-    $cienaCesChassisGlobal,
-    $cienaCesChassisPlatform,
-    $cienaCesChassisIDP
 );
 
 // PSU Stuff
 $cienaCesChassisPowerModule = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisPowerModule',
-    $cienaCesChassisPowerModule,
+    [],
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
 
 // Fan Stuff
 $cienaCesChassisFanTrayEntry = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisFanTrayEntry',
-    $cienaCesChassisFanTrayEntry,
+    [],
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
 $cienaCesChassisFanEntry = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisFanEntry',
-    $cienaCesChassisFanEntry,
+    [],
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
 $cienaCesChassisFanTempEntry = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesChassisFanTempEntry',
-    $cienaCesChassisFanTempEntry,
+    [],
     'CIENA-CES-CHASSIS-MIB',
-    'ciena'
 );
 
 // Module Stuff
-$cienaCesModuleEntry = snmpwalk_cache_multi_oid(
+$module_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesModuleEntry',
-    $cienaCesModuleEntry,
+    [],
     'CIENA-CES-MODULE-MIB',
-    'ciena'
 );
-$cienaCesModuleDescriptionEntry = snmpwalk_cache_multi_oid(
+$module_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesModuleDescriptionEntry',
-    $cienaCesModuleDescriptionEntry,
+    $module_array,
     'CIENA-CES-MODULE-MIB',
-    'ciena'
 );
-$cienaCesModuleSwEntry = snmpwalk_cache_multi_oid(
+$module_array = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesModuleSwEntry',
-    $cienaCesModuleSwEntry,
+    $module_array,
     'CIENA-CES-MODULE-MIB',
-    'ciena'
-);
-
-$module_array = array_merge_recursive(
-    $cienaCesModuleEntry,
-    $cienaCesModuleDescriptionEntry,
-    $cienaCesModuleSwEntry
 );
 
 // Interface stuff
 $interfaceIndexMapping = snmpwalk_cache_multi_oid(
     $device,
     'dot1dBasePortIfIndex',
-    $interfaceIndexMapping,
+    [],
     'BRIDGE-MIB',
-    'ciena'
 );
 
 $cienaCesEttpConfigEntry = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesEttpConfigEntry',
-    $cienaCesEttpConfigEntry,
+    [],
     'CIENA-CES-PORT-MIB',
-    'ciena'
 );
 $cienaCesPortXcvrEntry = snmpwalk_cache_multi_oid(
     $device,
     'cienaCesPortXcvrEntry',
-    $cienaCesPortXcvrEntry,
+    [],
     'CIENA-CES-PORT-XCVR-MIB',
-    'ciena'
 );
 
 foreach ($chassis_array as $cienaCesChassis => $chassis_contents) {
     // as far as I know, there can only be 1 chassis, but iterate just in case
     $chassisIndex = $cienaCesChassis + 1;
     $entity_array[] = [
-        'entPhysicalIndex'        => $chassisIndex,
-        'entPhysicalDescr'        => $chassis_contents['cienaCesChassisPlatformDesc'],
-        'entPhysicalClass'        => 'chassis',
-        'entPhysicalName'         => 'Chassis',
-        'entPhysicalModelName'    => $chassis_contents['cienaCesChassisPartNumber'],
-        'entPhysicalSerialNum'    => $chassis_contents['cienaCesChassisSerialNumber'],
-        'entPhysicalContainedIn'  => '0',
-        'entPhysicalMfgName'      => 'Ciena',
+        'entPhysicalIndex' => $chassisIndex,
+        'entPhysicalDescr' => $chassis_contents['cienaCesChassisPlatformDesc'],
+        'entPhysicalClass' => 'chassis',
+        'entPhysicalName' => 'Chassis',
+        'entPhysicalModelName' => $chassis_contents['cienaCesChassisPartNumber'],
+        'entPhysicalSerialNum' => $chassis_contents['cienaCesChassisSerialNumber'],
+        'entPhysicalContainedIn' => '0',
+        'entPhysicalMfgName' => 'Ciena',
         'entPhysicalParentRelPos' => '-1',
-        'entPhysicalHardwareRev'  => $contents['cienaCesChassisIDPModelRevision'],
-        'entPhysicalIsFRU'        => 'true',
+        'entPhysicalHardwareRev' => $chassis_contents['cienaCesChassisIDPModelRevision'],
+        'entPhysicalIsFRU' => 'true',
     ];
     $entity_array[] = [
-        'entPhysicalIndex'        => "40$chassisIndex",
-        'entPhysicalClass'        => 'container',
-        'entPhysicalName'         => 'Modules',
-        'entPhysicalContainedIn'  => $chassisIndex,
+        'entPhysicalIndex' => "40$chassisIndex",
+        'entPhysicalClass' => 'container',
+        'entPhysicalName' => 'Modules',
+        'entPhysicalContainedIn' => $chassisIndex,
         'entPhysicalParentRelPos' => -1,
     ];
     $entity_array[] = [
-        'entPhysicalIndex'        => "41$chassisIndex",
-        'entPhysicalClass'        => 'container',
-        'entPhysicalName'         => 'Power Supplies',
-        'entPhysicalContainedIn'  => $chassisIndex,
+        'entPhysicalIndex' => "41$chassisIndex",
+        'entPhysicalClass' => 'container',
+        'entPhysicalName' => 'Power Supplies',
+        'entPhysicalContainedIn' => $chassisIndex,
         'entPhysicalParentRelPos' => -1,
     ];
     $entity_array[] = [
-        'entPhysicalIndex'        => "42$chassisIndex",
-        'entPhysicalClass'        => 'container',
-        'entPhysicalName'         => 'Fans',
-        'entPhysicalContainedIn'  => $chassisIndex,
+        'entPhysicalIndex' => "42$chassisIndex",
+        'entPhysicalClass' => 'container',
+        'entPhysicalName' => 'Fans',
+        'entPhysicalContainedIn' => $chassisIndex,
         'entPhysicalParentRelPos' => -1,
     ];
 }
 
 foreach ($cienaCesChassisPowerModule as $index => $contents) {
     $entity_array[] = [
-        'entPhysicalIndex'        => "50$index",
-        'entPhysicalDescr'        => $contents['cienaCesChassisPowerSupplyManufacturer'],
-        'entPhysicalClass'        => 'sensor',
-        'entPhysicalName'         => $contents['cienaCesChassisPowerSupplySlotName'],
-        'entPhysicalModelName'    => $contents['cienaCesChassisPowerSupplyPartNum'],
-        'entPhysicalSerialNum'    => $contents['cienaCesChassisPowerSupplySerialNumber'],
-        'entPhysicalContainedIn'  => '41' . $contents['cienaCesChassisPowerSupplyChassisIndx'],
-        'entPhysicalMfgName'      => 'Ciena',
+        'entPhysicalIndex' => "50$index",
+        'entPhysicalDescr' => $contents['cienaCesChassisPowerSupplyManufacturer'],
+        'entPhysicalClass' => 'sensor',
+        'entPhysicalName' => $contents['cienaCesChassisPowerSupplySlotName'],
+        'entPhysicalModelName' => $contents['cienaCesChassisPowerSupplyPartNum'],
+        'entPhysicalSerialNum' => $contents['cienaCesChassisPowerSupplySerialNumber'],
+        'entPhysicalContainedIn' => '41' . $contents['cienaCesChassisPowerSupplyChassisIndx'],
+        'entPhysicalMfgName' => 'Ciena',
         'entPhysicalParentRelPos' => $contents['cienaCesChassisPowerSupplySlotIndx'],
-        'entPhysicalHardwareRev'  => $contents['cienaCesChassisPowerSupplyRevInfo'],
-        'entPhysicalIsFRU'        => $contents['cienaCesChassisPowerSupplyFRU'],
-        'ifIndex'                 => null,
+        'entPhysicalHardwareRev' => $contents['cienaCesChassisPowerSupplyRevInfo'],
+        'entPhysicalIsFRU' => $contents['cienaCesChassisPowerSupplyFRU'],
+        'ifIndex' => null,
     ];
 }
 
@@ -214,16 +189,16 @@ foreach ($cienaCesChassisFanTrayEntry as $index => $contents) {
     }
 
     $entity_array[] = [
-        'entPhysicalIndex'        => "53$index",
-        'entPhysicalClass'        => 'sensor',
-        'entPhysicalName'         => $contents['cienaCesChassisFanTrayName'],
-        'entPhysicalModelName'    => 'Fan Tray',
-        'entPhysicalDescr'        => "$typeString$modeString",
-        'entPhysicalSerialNum'    => $contents['cienaCesChassisFanTraySerialNumber'],
-        'entPhysicalContainedIn'  => '42' . $contents['cienaCesChassisFanTrayChassisIndx'],
-        'entPhysicalMfgName'      => 'Ciena',
+        'entPhysicalIndex' => "53$index",
+        'entPhysicalClass' => 'sensor',
+        'entPhysicalName' => $contents['cienaCesChassisFanTrayName'],
+        'entPhysicalModelName' => 'Fan Tray',
+        'entPhysicalDescr' => "$typeString$modeString",
+        'entPhysicalSerialNum' => $contents['cienaCesChassisFanTraySerialNumber'],
+        'entPhysicalContainedIn' => '42' . $contents['cienaCesChassisFanTrayChassisIndx'],
+        'entPhysicalMfgName' => 'Ciena',
         'entPhysicalParentRelPos' => $contents['cienaCesChassisFanTraySlotIndx'],
-        'entPhysicalIsFRU'        => ($contents['cienaCesChassisFanTrayType'] = '2') ? 'true' : 'false',
+        'entPhysicalIsFRU' => ($contents['cienaCesChassisFanTrayType'] = '2') ? 'true' : 'false',
     ];
 }
 
@@ -234,13 +209,13 @@ foreach ($cienaCesChassisFanEntry as $index => $contents) {
     $fanIndex = $indexArr[1];
 
     $entity_array[] = [
-        'entPhysicalIndex'        => "51$fanIndex",
-        'entPhysicalClass'        => 'sensor',
-        'entPhysicalName'         => $contents['cienaCesChassisFanName'],
-        'entPhysicalModelName'    => 'Fan',
-        'entPhysicalContainedIn'  => (isset($cienaCesChassisFanTrayEntry[$fanTray])) ?
+        'entPhysicalIndex' => "51$fanIndex",
+        'entPhysicalClass' => 'sensor',
+        'entPhysicalName' => $contents['cienaCesChassisFanName'],
+        'entPhysicalModelName' => 'Fan',
+        'entPhysicalContainedIn' => (isset($cienaCesChassisFanTrayEntry[$fanTray])) ?
             "53$fanTray" : '42' . $contents['cienaCesChassisFanChassisIndx'],
-        'entPhysicalMfgName'      => 'Ciena',
+        'entPhysicalMfgName' => 'Ciena',
         'entPhysicalParentRelPos' => $fanIndex,
     ];
 }
@@ -252,11 +227,11 @@ foreach ($cienaCesChassisFanTempEntry as $index => $contents) {
     $sensorIndex = $indexArr[1];
 
     $entity_array[] = [
-        'entPhysicalIndex'        => "52$sensorIndex",
-        'entPhysicalClass'        => 'sensor',
-        'entPhysicalName'         => $contents['cienaCesChassisFanTempName'],
-        'entPhysicalModelName'    => 'Temp Sensor',
-        'entPhysicalContainedIn'  => (isset($cienaCesChassisFanTrayEntry[$fanTray])) ?
+        'entPhysicalIndex' => "52$sensorIndex",
+        'entPhysicalClass' => 'sensor',
+        'entPhysicalName' => $contents['cienaCesChassisFanTempName'],
+        'entPhysicalModelName' => 'Temp Sensor',
+        'entPhysicalContainedIn' => (isset($cienaCesChassisFanTrayEntry[$fanTray])) ?
             "53$fanTray" : '42' . $contents['cienaCesChassisFanTempChassisIndx'],
         'entPhysicalParentRelPos' => -1,
     ];
@@ -270,17 +245,17 @@ foreach ($module_array as $index => $contents) {
     $slotIndex = $indexArr[2];
 
     $entity_array[] = [
-        'entPhysicalIndex'        => "55$slotIndex",
-        'entPhysicalDescr'        => $contents['cienaCesModuleDescription'] . ', ' . $contents['cienaCesModuleSwRunningRelease'],
-        'entPhysicalClass'        => 'sensor',
-        'entPhysicalName'         => $contents['cienaCesModuleSlotName'] . ': ' . $contents['cienaCesModuleDescriptionBoardName'],
-        'entPhysicalModelName'    => $contents['cienaCesModuleDescriptionBoardPartNum'],
-        'entPhysicalSerialNum'    => $contents['cienaCesModuleDescriptionBoardSerialNum'],
-        'entPhysicalContainedIn'  => '40' . $chassisIndex,
-        'entPhysicalMfgName'      => 'Ciena',
+        'entPhysicalIndex' => "55$slotIndex",
+        'entPhysicalDescr' => $contents['cienaCesModuleDescription'] . ', ' . $contents['cienaCesModuleSwRunningRelease'],
+        'entPhysicalClass' => 'sensor',
+        'entPhysicalName' => $contents['cienaCesModuleSlotName'] . ': ' . $contents['cienaCesModuleDescriptionBoardName'],
+        'entPhysicalModelName' => $contents['cienaCesModuleDescriptionBoardPartNum'],
+        'entPhysicalSerialNum' => $contents['cienaCesModuleDescriptionBoardSerialNum'],
+        'entPhysicalContainedIn' => '40' . $chassisIndex,
+        'entPhysicalMfgName' => 'Ciena',
         'entPhysicalParentRelPos' => $slotIndex,
-        'entPhysicalFirmwareRev'  => $contents['cienaCesModuleSwRunningRelease'],
-        'entPhysicalIsFRU'        => 'true',
+        'entPhysicalFirmwareRev' => $contents['cienaCesModuleSwRunningRelease'],
+        'entPhysicalIsFRU' => 'true',
     ];
 }
 
@@ -290,13 +265,13 @@ foreach ($cienaCesEttpConfigEntry as $index => $contents) {
     $slotIndex = ((isset($nameArr[1])) ? $nameArr[0] : 1);
 
     $entity_array[] = [
-        'entPhysicalIndex'        => "56$index",
-        'entPhysicalDescr'        => $contents['cienaCesEttpConfigEttpType'],
-        'entPhysicalClass'        => 'port',
-        'entPhysicalName'         => $contents['cienaCesEttpConfigName'],
-        'entPhysicalContainedIn'  => '55' . $slotIndex,
+        'entPhysicalIndex' => "56$index",
+        'entPhysicalDescr' => $contents['cienaCesEttpConfigEttpType'],
+        'entPhysicalClass' => 'port',
+        'entPhysicalName' => $contents['cienaCesEttpConfigName'],
+        'entPhysicalContainedIn' => '55' . $slotIndex,
         'entPhysicalParentRelPos' => $index,
-        'ifIndex'                 => $portIndex,
+        'ifIndex' => $portIndex,
     ];
     if (isset($cienaCesPortXcvrEntry[$index])) {
         if ($cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrOperState'] != 'notPresent') {
@@ -305,17 +280,17 @@ foreach ($cienaCesEttpConfigEntry as $index => $contents) {
             $mfgString = ($cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrMfgDate'] != '' ?
                 'manufactured ' . $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrMfgDate'] . ' ' : '');
             $entity_array[] = [
-                'entPhysicalIndex'        => $portIndex,
-                'entPhysicalDescr'        => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorName'] . ' ' . $wavelengthString .
+                'entPhysicalIndex' => $portIndex,
+                'entPhysicalDescr' => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorName'] . ' ' . $wavelengthString .
                     $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrIdentiferType'] . ' transceiver ' . $mfgString,
-                'entPhysicalClass'        => 'sensor',
-                'entPhysicalModelName'    => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorPartNum'],
-                'entPhysicalSerialNum'    => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrSerialNum'],
-                'entPhysicalContainedIn'  => "56$index",
-                'entPhysicalMfgName'      => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorName'],
+                'entPhysicalClass' => 'sensor',
+                'entPhysicalModelName' => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorPartNum'],
+                'entPhysicalSerialNum' => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrSerialNum'],
+                'entPhysicalContainedIn' => "56$index",
+                'entPhysicalMfgName' => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrVendorName'],
                 'entPhysicalParentRelPos' => -1,
-                'entPhysicalHardwareRev'  => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrRevNum'],
-                'entPhysicalIsFRU'        => 'true',
+                'entPhysicalHardwareRev' => $cienaCesPortXcvrEntry[$index]['cienaCesPortXcvrRevNum'],
+                'entPhysicalIsFRU' => 'true',
             ];
         }
     }
@@ -347,8 +322,15 @@ foreach ($entity_array as $entPhysicalIndex => $entry) {
 
 echo "\n";
 unset(
-    $update_data,
-    $insert_data,
+    $chassis_array,
+    $cienaCesChassisPowerModule,
+    $cienaCesChassisFanTrayEntry,
+    $cienaCesChassisFanEntry,
+    $cienaCesChassisFanTempEntry,
+    $interfaceIndexMapping,
+    $cienaCesEttpConfigEntry,
+    $cienaCesPortXcvrEntry,
+    $module_array,
     $entry,
     $entity_array
 );

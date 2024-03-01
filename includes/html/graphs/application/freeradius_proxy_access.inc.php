@@ -5,11 +5,11 @@ $i = 0;
 $scale_min = 0;
 $nototal = 1;
 $unit_text = 'Per Sec.';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'freeradius-proxy_access', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'freeradius-proxy_access', $app->app_id]);
 $fr_proxy_access_array = [
     'requests' => 'Requests',
     'accepts' => 'Accepts',
-    'rejects'=> 'Rejects',
+    'rejects' => 'Rejects',
     'challenges' => 'Challenges',
 ];
 $colours = 'mixed';

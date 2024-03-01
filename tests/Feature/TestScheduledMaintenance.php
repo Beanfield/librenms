@@ -12,7 +12,7 @@ class TestScheduledMaintenance extends DBTestCase
 {
     private $timezone;
 
-    public function testNormal()
+    public function testNormal(): void
     {
         $now = CarbonImmutable::now();
 
@@ -35,7 +35,7 @@ class TestScheduledMaintenance extends DBTestCase
         $this->assertScheduleSet($now->subHours(2), $schedule);
     }
 
-    public function testRecurringNormal()
+    public function testRecurringNormal(): void
     {
         $this->setTimezone('America/New_York');
         $schedule = AlertSchedule::factory()->recurring()->make();
@@ -48,8 +48,8 @@ class TestScheduledMaintenance extends DBTestCase
         $this->assertScheduleActive(Carbon::parse('2020-09-10 2:00'), $schedule);
         $this->assertScheduleSet(Carbon::parse('2020-09-10 1:59'), $schedule);
         $this->assertScheduleActive(Carbon::parse('2020-09-10 19:59'), $schedule);
-//        $this->assertScheduleSet(Carbon::parse('2020-09-10 20:01'), $schedule); // FIXME broken since end is 1am UTC
-//        $this->assertScheduleSet(Carbon::parse('2020-09-11 01:00'), $schedule);
+        $this->assertScheduleSet(Carbon::parse('2020-09-10 20:01'), $schedule);
+        $this->assertScheduleSet(Carbon::parse('2020-09-11 01:00'), $schedule);
         $this->assertScheduleActive(Carbon::parse('2020-09-11 11:00'), $schedule);
         $this->assertScheduleSet(Carbon::parse('2020-09-12 11:00'), $schedule);
         $this->assertScheduleActive(Carbon::parse('2020-09-14 10:00'), $schedule);

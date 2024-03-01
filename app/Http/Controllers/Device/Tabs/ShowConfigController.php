@@ -71,8 +71,10 @@ class ShowConfigController extends Controller implements DeviceTab
     private function oxidizedEnabled(Device $device)
     {
         return Config::get('oxidized.enabled') === true
-            && Config::has('oxidized.url')
-            && $device->getAttrib('override_Oxidized_disable') !== 'true';
+                && Config::has('oxidized.url')
+                && $device->getAttrib('override_Oxidized_disable') !== 'true'
+                && ! in_array($device->type, Config::get('oxidized.ignore_types', []))
+                && ! in_array($device->os, Config::get('oxidized.ignore_os', []));
     }
 
     private function getRancidPath()
@@ -102,7 +104,7 @@ class ShowConfigController extends Controller implements DeviceTab
         if (Config::has('rancid_configs.0')) {
             $device = DeviceCache::getPrimary();
             foreach (Config::get('rancid_configs') as $configs) {
-                if ($configs[(strlen($configs) - 1)] != '/') {
+                if ($configs[strlen($configs) - 1] != '/') {
                     $configs .= '/';
                 }
 

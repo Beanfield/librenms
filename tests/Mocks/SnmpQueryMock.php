@@ -33,47 +33,30 @@ use Illuminate\Support\Str;
 use LibreNMS\Data\Source\NetSnmpQuery;
 use LibreNMS\Data\Source\SnmpQueryInterface;
 use LibreNMS\Data\Source\SnmpResponse;
-use LibreNMS\Device\YamlDiscovery;
+use LibreNMS\Util\Mac;
+use LibreNMS\Util\Oid;
 use Log;
 
 class SnmpQueryMock implements SnmpQueryInterface
 {
-    /**
-     * @var array
-     */
-    private static $cache;
+    private static ?array $cache = null;
+    private Device $device;
+    private string $context = '';
+    private ?string $mibDir = null;
+    private array $mibs = [];
+    private bool $numeric = false;
+    private bool $hideMib = false;
+    private array $options = [];
+    private bool $abort = false;
 
-    /**
-     * @var Device
-     */
-    private $device;
-    /**
-     * @var string
-     */
-    private $context;
-    /**
-     * @var string|null
-     */
-    private $mibDir;
-    /**
-     * @var bool
-     */
-    private $numeric = false;
-    /**
-     * @var bool
-     */
-    private $hideMib = false;
-    /**
-     * @var array|mixed
-     */
-    private $options = [];
+    public function __construct()
+    {
+        $this->device = DeviceCache::getPrimary();
+    }
 
     public static function make(): SnmpQueryInterface
     {
-        $new = new static;
-        $new->device = DeviceCache::getPrimary();
-
-        return $new;
+        return new static;
     }
 
     public function device(Device $device): SnmpQueryInterface
@@ -90,6 +73,11 @@ class SnmpQueryMock implements SnmpQueryInterface
         return $this;
     }
 
+    public function cache(): SnmpQueryInterface
+    {
+        return $this; // ignore, always cached
+    }
+
     public function context(string $context): SnmpQueryInterface
     {
         $this->context = $context;
@@ -97,7 +85,7 @@ class SnmpQueryMock implements SnmpQueryInterface
         return $this;
     }
 
-    public function translate(string $oid, ?string $mib = null): SnmpResponse
+    public function translate(string $oid): string
     {
         // call real snmptranslate
         $options = $this->options;
@@ -110,8 +98,16 @@ class SnmpQueryMock implements SnmpQueryInterface
 
         return NetSnmpQuery::make()
             ->mibDir($this->mibDir)
+            ->mibs($this->mibs)
             ->options($options)
-            ->translate($oid, $mib);
+            ->translate($oid);
+    }
+
+    public function abortOnFailure(): SnmpQueryInterface
+    {
+        $this->abort = true;
+
+        return $this;
     }
 
     public function allowUnordered(): SnmpQueryInterface
@@ -119,9 +115,17 @@ class SnmpQueryMock implements SnmpQueryInterface
         return $this;
     }
 
-    public function numeric(): SnmpQueryInterface
+    public function numeric(bool $numeric = true): SnmpQueryInterface
     {
-        $this->numeric = true;
+        $this->numeric = $numeric;
+
+        return $this;
+    }
+
+    public function numericIndex(bool $numericIndex = true): SnmpQueryInterface
+    {
+        // TODO: Implement numericIndex() method
+        Log::error('numericIndex not implemented in SnmpQueryMock');
 
         return $this;
     }
@@ -148,6 +152,17 @@ class SnmpQueryMock implements SnmpQueryInterface
         return $this;
     }
 
+    /**
+     * Set MIBs to use for this query. Base mibs are included by default.
+     * They will be appended to existing mibs unless $append is set to false.
+     */
+    public function mibs(array $mibs, bool $append = true): SnmpQueryInterface
+    {
+        $this->mibs = $append ? array_merge($this->mibs, $mibs) : $mibs;
+
+        return $this;
+    }
+
     public function mibDir(?string $dir): SnmpQueryInterface
     {
         $this->mibDir = $dir;
@@ -157,7 +172,7 @@ class SnmpQueryMock implements SnmpQueryInterface
 
     public function get($oid): SnmpResponse
     {
-        $community = $this->device->community;
+        $community = $this->community();
         $num_oid = $this->translateNumber($oid);
         $data = $this->getSnmprec($community)[$num_oid] ?? [0, ''];
 
@@ -166,27 +181,43 @@ class SnmpQueryMock implements SnmpQueryInterface
         return new SnmpResponse($this->outputLine($oid, $num_oid, $data[0], $data[1]));
     }
 
-    public function walk($oid): SnmpResponse
+    /**
+     * @param  array|string  $oids
+     * @return \LibreNMS\Data\Source\SnmpResponse
+     *
+     * @throws \Exception
+     */
+    public function walk($oids): SnmpResponse
     {
-        $community = $this->device->community;
-        $num_oid = $this->translateNumber($oid);
+        $community = $this->community();
         $dev = $this->getSnmprec($community);
+        $response = new SnmpResponse('');
 
-        $output = '';
-        foreach ($dev as $key => $data) {
-            if (Str::startsWith($key, $num_oid)) {
-                $output .= $this->outputLine($oid, $num_oid, $data[0], $data[1]);
+        foreach (Arr::wrap($oids) as $oid) {
+            $num_oid = $this->translateNumber($oid);
+
+            $output = '';
+            foreach ($dev as $key => $data) {
+                if (Str::startsWith($key, $num_oid)) {
+                    $output .= $this->outputLine($oid, $num_oid, $data[0], $data[1]);
+                }
             }
+
+            $response = $response->append(new SnmpResponse($output));
+
+            if ($this->abort && ! $response->isValid()) {
+                return $response;
+            }
+
+            Log::debug("[SNMP] snmpwalk $community $num_oid");
         }
 
-        Log::debug("[SNMP] snmpwalk $community $num_oid");
-
-        return new SnmpResponse($output);
+        return $response;
     }
 
     public function next($oid): SnmpResponse
     {
-        $community = $this->device->community;
+        $community = $this->community();
         $num_oid = $this->translateNumber($oid);
         $dev = $this->getSnmprec($community);
 
@@ -226,7 +257,7 @@ class SnmpQueryMock implements SnmpQueryInterface
                     '1.3.6.1.2.1.17.1.1.0', // BRIDGE-MIB::dot1dBaseBridgeAddress.0
                     '1.3.6.1.4.1.890.1.5.13.13.8.1.1.20', // IES5206-MIB::slotModuleMacAddress
                 ])) {
-                    $data = \LibreNMS\Util\Rewrite::readableMac($data);
+                    $data = Mac::parse($data)->readable();
                 } else {
                     $data = hex2str($data);
                 }
@@ -261,15 +292,15 @@ class SnmpQueryMock implements SnmpQueryInterface
     private function outputLine(string $oid, string $num_oid, string $type, string $data): string
     {
         if ($type == 6) {
-            $data = $this->numeric ? ".$data" : $this->translate($data, $this->extractMib($oid))->value();
+            $data = $this->numeric ? ".$data" : $this->mibs($this->extractMib($oid))->translate($data);
         }
 
         if ($this->numeric) {
             return "$num_oid = $data";
         }
 
-        if (! empty($oid) && YamlDiscovery::oidIsNumeric($oid)) {
-            $oid = $this->translate($oid)->value();
+        if (! empty($oid) && Oid::isNumeric($oid)) {
+            $oid = $this->translate($oid);
         }
 
         return "$oid = $data";
@@ -280,12 +311,11 @@ class SnmpQueryMock implements SnmpQueryInterface
      * The leading dot is ommited by default to be compatible with snmpsim
      *
      * @param  string  $oid  the oid to tranlslate
-     * @param  string  $mib  mib to use
      * @return string the oid in numeric format (1.3.4.5)
      *
      * @throws Exception Could not translate the oid
      */
-    private function translateNumber($oid, $mib = null)
+    private function translateNumber($oid)
     {
         // optimizations (35s -> 1.6s on my laptop)
         switch ($oid) {
@@ -305,17 +335,15 @@ class SnmpQueryMock implements SnmpQueryInterface
                 return '1.3.6.1.4.1.6574.1.1.0';
         }
 
-        if (YamlDiscovery::oidIsNumeric($oid)) {
+        if (Oid::isNumeric($oid)) {
             return ltrim($oid, '.');
         }
 
         $options = ['-IR'];
-        if ($mib) {
-            $options[] = "-m $mib";
-        }
 
         $number = NetSnmpQuery::make()->mibDir($this->mibDir)
-            ->options(array_merge($options, $this->options))->numeric()->translate($oid)->value();
+            ->mibs($this->mibs)
+            ->options(array_merge($options, $this->options))->numeric()->translate($oid);
 
         if (empty($number)) {
             throw new Exception('Could not translate oid: ' . $oid . PHP_EOL);
@@ -324,12 +352,23 @@ class SnmpQueryMock implements SnmpQueryInterface
         return ltrim($number, '.');
     }
 
-    private function extractMib(string $oid): ?string
+    private function community(): string
     {
-        if (Str::contains($oid, '::')) {
-            return explode('::', $oid, 2)[0];
+        $community = $this->device->community;
+
+        if (! empty($this->context)) {
+            $community .= '_' . $this->context;
         }
 
-        return null;
+        return $community;
+    }
+
+    private function extractMib(string $oid): array
+    {
+        if (Str::contains($oid, '::')) {
+            return [explode('::', $oid, 2)[0]];
+        }
+
+        return [];
     }
 }

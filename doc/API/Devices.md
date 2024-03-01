@@ -564,6 +564,38 @@ Output:
 
 Output is an image.
 
+### `get_graph_by_service`
+
+Get the graph for a service
+
+Route: `/api/v0/devices/:hostname/services/:service_id/graphs/:datasource`
+
+- hostname can be either the device hostname or id
+- service id
+- datasource is the name of the service datasource
+
+Input:
+
+- from: This is the date you would like the graph to start - See
+  [http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html](http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html)
+  for more information.
+- to: This is the date you would like the graph to end - See
+  [http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html](http://oss.oetiker.ch/rrdtool/doc/rrdgraph.en.html)
+  for more information.
+- width: The graph width, defaults to 1075.
+- height: The graph height, defaults to 300.
+
+  Example:
+
+```curl
+curl -H 'X-Auth-Token: YOURAPITOKENHERE' https://librenms.org/api/v0/services/localhost/35/graphs/loss
+```
+
+Output:
+
+Output is an image.
+
+
 ### `get_port_graphs`
 
 Get a list of ports for a particular device.
@@ -938,41 +970,6 @@ Output:
 
 Output is an image.
 
-### `list_locations`
-
-Return a list of locations.
-
-Route: `/api/v0/resources/locations`
-
-Input:
-
--
-
-Example:
-
-```curl
-curl -H 'X-Auth-Token: YOURAPITOKENHERE' https://librenms.org/api/v0/resources/locations
-```
-
-Output:
-
-```json
-{
-    "status": "ok",
-    "locations": [
-        {
-            "id": "1",
-            "location": "Example location, Example city, Example Country",
-            "lat": "-18.911436",
-            "lng": "47.517446",
-            "timestamp": "2017-04-01 02:40:05"
-        },
-        ...
-    ],
-    "count": 100
-}
-```
-
 ### `list_sensors`
 
 Get a list of all Sensors.
@@ -1049,8 +1046,12 @@ Input:
   - ipv4: search by IPv4 address
   - ipv6: search by IPv6 address (compressed or uncompressed)
   - location: search by location
+  - location_id: serach by locaiton_id
   - hostname: search by hostname
+  - sysName: search by sysName
+  - display: search by display name
   - device_id: exact match by device-id
+  - type: search by device type
 - query: If searching by, then this will be used as the input.
 
 Example:
@@ -1109,13 +1110,28 @@ Route: `/api/v0/devices/:hostname/maintenance`
 
 Input (JSON):
 
-- notes: Some description for the Maintenance
-- duration: Duration of Maintenance in format H:m
+- `title`: *optional* -  Some title for the Maintenance  
+  Will be replaced with hostname if omitted
+- `notes`: *optional* -  Some description for the Maintenance  
+  Will also be added to device notes if user prefs "Add schedule notes to devices notes" is set
+- `start`: *optional* - start time of Maintenance in full format `Y-m-d H:i:00`  
+  eg: 2022-08-01 22:45:00  
+  Current system time `now()` will be used if omitted
+- `duration`: *required* - Duration of Maintenance in format `H:i` / `Hrs:Mins`  
+  eg: 02:00
 
-Example:
+Example with start time:
 
 ```curl
-curl -X POST -d '{"notes":"A 2 hour Maintenance triggered via API","duration":"2:00"}' -H 'X-Auth-Token: YOURAPITOKENHERE' https://librenms.org/api/v0/localhost/maintenance
+curl -H 'X-Auth-Token: YOURAPITOKENHERE' \
+  -X POST https://librenms.org/api/v0/devices/localhost/maintenance/ \
+  --data-raw '
+ "title":"Device Maintenance",
+  "notes":"A 2 hour Maintenance triggered via API with start time",
+  "start":"2022-08-01 08:00:00",
+  "duration":"2:00"
+}
+'
 ```
 
 Output:
@@ -1123,45 +1139,82 @@ Output:
 ```json
 {
     "status": "ok",
-    "message": "Device localhost.localdomain (57) moved into maintenance mode for 2:00 h"
+    "message": "Device localhost (1) will begin maintenance mode at 2022-08-01 22:45:00 for 2:00h"
 }
 ```
 
+Example with no start time:
+
+```curl
+curl -H 'X-Auth-Token: YOURAPITOKENHERE' \
+  -X POST https://librenms.org/api/v0/devices/localhost/maintenance/ \
+  --data-raw '
+ "title":"Device Maintenance",
+  "notes":"A 2 hour Maintenance triggered via API with no start time",
+  "duration":"2:00"
+}
+'
+```
+
+Output:
+
+```json
+{
+    "status": "ok",
+    "message": "Device localhost (1) moved into maintenance mode for 2:00h"
+}
+```
+
+
 ### `add_device`
 
-Add a new device.
+Add a new device.  Most fields are optional. You may omit snmp
+credentials to attempt each system credential in order. See snmp.version, snmp.community, and snmp.v3
+
+To guarantee device is added, use force_add. This will skip checks 
+for duplicate device and snmp reachability, but not duplicate hostname.
 
 Route: `/api/v0/devices`
 
 Input (JSON):
 
-- hostname: device hostname
-- overwrite_ip: alternate polling IP. Will be use instead of hostname (optional)
-- port: SNMP port (defaults to port defined in config).
-- transport: SNMP protocol (defaults to transport defined in config).
-- version: SNMP version to use, v1, v2c or v3. Defaults to v2c.
-- poller_group: This is the poller_group id used for distributed
-  poller setup. Defaults to 0.
-- force_add: Force the device to be added regardless of it being able
-  to respond to snmp or icmp.
+Fields:
 
-For SNMP v1 or v2c
+- hostname (required): device hostname or IP
+- display: A string to display as the name of this device, defaults to 
+  hostname (or device_display_default setting). May be a simple
+  template using replacements: {{ $hostname }}, {{ $sysName }},
+  {{ $sysName_fallback }}, {{ $ip }}
+- snmpver: SNMP version to use, v1, v2c or v3. During checks detection order is v2c,v3,v1
+- port: SNMP port (defaults to port defined in config).
+- transport: SNMP protocol (udp,tcp,udp6,tcp6) Defaults to transport defined in config.
+- port_association_mode: method to identify ports: ifIndex (default), ifName, ifDescr, ifAlias
+- poller_group: This is the poller_group id used for distributed poller setup. Defaults to 0.
+- location or location_id: set the location by text or location id
+
+Options:
+
+- force_add: Skip all checks and attempts to detect credentials. Add the device as given directly to the database.
+- ping_fallback: if snmp checks fail, add the device as ping only instead of failing
+
+SNMP v1 or v2c credentials:
 
 - community: Required for SNMP v1 or v2c.
 
-For SNMP v3
+SNMP v3 credentials:
 
 - authlevel: SNMP authlevel (noAuthNoPriv, authNoPriv, authPriv).
 - authname: SNMP Auth username
 - authpass: SNMP Auth password
-- authalgo: SNMP Auth algorithm (MD5, SHA)
+- authalgo: SNMP Auth algorithm (MD5, SHA) (SHA-224, SHA-256, SHA-384, SHA-512 if supported by your server)
 - cryptopass: SNMP Crypto Password
 - cryptoalgo: SNMP Crypto algorithm (AES, DES)
 
-For ICMP only
+For ICMP only:
 
-- snmp_disable: Boolean, set to true for ICMP only.
+- snmp_disable: set to true for ICMP only. Disables SNMP checks and polling.
 - os: OS short name for the device (defaults to ping).
+- sysName: sysName for the device.
 - hardware: Device hardware.
 
 Example:
@@ -1248,6 +1301,35 @@ Output:
     {
         "status": "ok",
         "message": "Device notes has been updated"
+    }
+]
+```
+
+### `update_device_port_notes`
+
+Update a device port notes field in the devices_attrs database.
+
+Route: `/api/v0/devices/:hostname/port/:portid`
+
+- hostname can be either the device hostname or id
+- portid needs to be the port unique id (int).
+
+Input (JSON):
+- notes: The string data to populate on the port notes field.
+
+Examples:
+
+```curl
+curl -X PATCH -d '{"notes": "This port is in a scheduled maintenance with the provider."}' -H 'X-Auth-Token: YOURAPITOKENHERE' https://librenms.org/api/v0/devices/localhost/port/5
+```
+
+Output:
+
+```json
+[
+    {
+        "status": "ok",
+        "message": "Port notes field has been updated"
     }
 ]
 ```
@@ -1374,9 +1456,9 @@ Output:
 
 Returns a specific device's config from oxidized.
 
-Route: `api/v0/oxidized/config/:device_name`
+Route: `api/v0/oxidized/config/:hostname`
 
-  - device_name is the full dns name of the device used when adding the device to librenms.
+  - hostname is the Hostname or IP of the device used when adding the device to librenms.
 
 Input:
 

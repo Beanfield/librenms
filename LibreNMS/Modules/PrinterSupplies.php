@@ -20,20 +20,37 @@
 
 namespace LibreNMS\Modules;
 
+use App\Models\Device;
+use App\Models\Eventlog;
 use App\Models\PrinterSupply;
 use App\Observers\ModuleModelObserver;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use LibreNMS\DB\SyncsModels;
-use LibreNMS\Enum\Alert;
+use LibreNMS\Enum\Severity;
+use LibreNMS\Interfaces\Data\DataStorageInterface;
 use LibreNMS\Interfaces\Module;
 use LibreNMS\OS;
+use LibreNMS\Polling\ModuleStatus;
 use LibreNMS\RRD\RrdDefinition;
-use Log;
+use LibreNMS\Util\Number;
 
 class PrinterSupplies implements Module
 {
     use SyncsModels;
+
+    /**
+     * @inheritDoc
+     */
+    public function dependencies(): array
+    {
+        return [];
+    }
+
+    public function shouldDiscover(OS $os, ModuleStatus $status): bool
+    {
+        return $status->isEnabledAndDeviceUp($os->getDevice());
+    }
 
     /**
      * Discover this module. Heavier processes can be run here
@@ -41,7 +58,7 @@ class PrinterSupplies implements Module
      *
      * @param  \LibreNMS\OS  $os
      */
-    public function discover(OS $os)
+    public function discover(OS $os): void
     {
         $device = $os->getDeviceArray();
 
@@ -53,6 +70,11 @@ class PrinterSupplies implements Module
         $this->syncModels($os->getDevice(), 'printerSupplies', $data);
     }
 
+    public function shouldPoll(OS $os, ModuleStatus $status): bool
+    {
+        return $status->isEnabledAndDeviceUp($os->getDevice());
+    }
+
     /**
      * Poll data for this module and update the DB / RRD.
      * Try to keep this efficient and only run if discovery has indicated there is a reason to run.
@@ -60,10 +82,14 @@ class PrinterSupplies implements Module
      *
      * @param  \LibreNMS\OS  $os
      */
-    public function poll(OS $os)
+    public function poll(OS $os, DataStorageInterface $datastore): void
     {
         $device = $os->getDeviceArray();
         $toner_data = $os->getDevice()->printerSupplies;
+
+        if (empty($toner_data)) {
+            return; // no data to poll
+        }
 
         $toner_snmp = snmp_get_multi_oid($device, $toner_data->pluck('supply_oid')->toArray());
 
@@ -75,33 +101,33 @@ class PrinterSupplies implements Module
             echo $tonerperc . " %\n";
 
             $tags = [
-                'rrd_def'     => RrdDefinition::make()->addDataset('toner', 'GAUGE', 0, 20000),
-                'rrd_name'    => ['toner', $toner['supply_type'], $toner['supply_index']],
+                'rrd_def' => RrdDefinition::make()->addDataset('toner', 'GAUGE', 0, 20000),
+                'rrd_name' => ['toner', $toner['supply_type'], $toner['supply_index']],
                 'rrd_oldname' => ['toner', $toner['supply_descr']],
-                'index'       => $toner['supply_index'],
+                'index' => $toner['supply_index'],
             ];
-            data_update($device, 'toner', $tags, $tonerperc);
+            $datastore->put($device, 'toner', $tags, $tonerperc);
 
             // Log empty supplies (but only once)
             if ($tonerperc == 0 && $toner['supply_current'] > 0) {
-                Log::event(
+                Eventlog::log(
                     'Toner ' . $toner['supply_descr'] . ' is empty',
                     $os->getDevice(),
                     'toner',
-                    Alert::ERROR,
+                    Severity::Error,
                     $toner['supply_id']
                 );
             }
 
             // Log toner swap
             if ($tonerperc > $toner['supply_current']) {
-                Log::event(
+                Eventlog::log(
                     'Toner ' . $toner['supply_descr'] . ' was replaced (new level: ' . $tonerperc . '%)',
                     $os->getDevice(),
                     'toner',
-                    Alert::NOTICE,
+                    Severity::Notice,
                     $toner['supply_id']
-                 );
+                );
             }
 
             $toner->supply_current = $tonerperc;
@@ -113,17 +139,26 @@ class PrinterSupplies implements Module
     /**
      * Remove all DB data for this module.
      * This will be run when the module is disabled.
-     *
-     * @param  Os  $os
      */
-    public function cleanup(OS $os)
+    public function cleanup(Device $device): void
     {
-        $os->getDevice()->printerSupplies()->delete();
+        $device->printerSupplies()->delete();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function dump(Device $device)
+    {
+        return [
+            'printer_supplies' => $device->printerSupplies()->orderBy('supply_oid')->orderBy('supply_index')
+                ->get()->map->makeHidden(['device_id', 'supply_id']),
+        ];
     }
 
     private function discoveryLevels($device): Collection
     {
-        $levels = collect();
+        $levels = new Collection();
 
         $oids = snmpwalk_cache_oid($device, 'prtMarkerSuppliesLevel', [], 'Printer-MIB');
         if (! empty($oids)) {
@@ -193,7 +228,7 @@ class PrinterSupplies implements Module
     private function discoveryPapers($device): Collection
     {
         echo 'Tray Paper Level: ';
-        $papers = collect();
+        $papers = new Collection();
 
         $tray_oids = snmpwalk_cache_oid($device, 'prtInputName', [], 'Printer-MIB');
         if (! empty($tray_oids)) {
@@ -215,7 +250,7 @@ class PrinterSupplies implements Module
                 // at least one piece of paper in tray
                 $current = 50;
             } else {
-                $current = $current / $capacity * 100;
+                $current = Number::calculatePercent($current, $capacity);
             }
 
             $papers->push(new PrinterSupply([
@@ -262,7 +297,7 @@ class PrinterSupplies implements Module
                 return 0;
             }
         } elseif ($device['os'] == 'brother') {
-            if (! Str::contains($device['hardware'], 'MFC-L8850')) {
+            if (! Str::contains($device['hardware'] ?? '', 'MFC-L8850')) {
                 switch ($raw_value) {
                     case '0':
                         return 100;
@@ -276,7 +311,7 @@ class PrinterSupplies implements Module
             }
         }
 
-        return round($raw_value / $capacity * 100);
+        return Number::calculatePercent($raw_value, $capacity, 0);
     }
 
     /**

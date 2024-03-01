@@ -21,16 +21,16 @@ $colour_area_in = 'CDEB8B';
 $colour_area_out = 'C3D9FF';
 
 $rrd_list = [];
-$rrd_filenames = glob(Rrd::name($device['hostname'], ['app', 'shoutcast', $app['app_id']], '*.rrd'));
+$rrd_filenames = glob(Rrd::name($device['hostname'], ['app', 'shoutcast', $app->app_id], '*.rrd'));
 foreach ($rrd_filenames as $file) {
     $pieces = explode('-', basename($file, '.rrd'));
     $hostname = end($pieces);
     [$host, $port] = explode('_', $hostname, 2);
     $rrd_list[] = [
         'filename' => $file,
-        'descr'    => $host . ':' . $port,
-        'ds_in'    => $ds_in,
-        'ds_out'   => $ds_out,
+        'descr' => $host . ':' . $port,
+        'ds_in' => $ds_in,
+        'ds_out' => $ds_out,
     ];
 }
 

@@ -6,18 +6,18 @@ $scale_min = 0;
 $colours = 'blue';
 $nototal = (($width < 224) ? 1 : 0);
 $unit_text = 'Packets/sec';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'powerdns', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'powerdns', $app->app_id]);
 $array = [
-    'pc_hit'  => [
-        'descr'  => 'Hits',
+    'pc_hit' => [
+        'descr' => 'Hits',
         'colour' => '008800FF',
     ],
     'pc_miss' => [
-        'descr'  => 'Misses',
+        'descr' => 'Misses',
         'colour' => '880000FF',
     ],
     'pc_size' => [
-        'descr'  => 'Size',
+        'descr' => 'Size',
         'colour' => '006699FF',
     ],
 ];

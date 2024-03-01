@@ -2,12 +2,12 @@
 
 require 'includes/html/graphs/common.inc.php';
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app->app_id]);
 
 $array = [
-    'IBIIs'  => 'Inserts',
+    'IBIIs' => 'Inserts',
     'IBIMRd' => 'Merged Records',
-    'IBIMs'  => 'Merges',
+    'IBIMs' => 'Merges',
 ];
 
 $i = 0;

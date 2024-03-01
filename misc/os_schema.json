@@ -99,10 +99,10 @@
                 "entity-state": {
                     "type": "boolean"
                 },
-                "wifi": {
+                "ipmi": {
                     "type": "boolean"
                 },
-                "ipmi": {
+                "isis": {
                     "type": "boolean"
                 },
                 "entity-physical": {
@@ -147,6 +147,9 @@
                 "services": {
                     "type": "boolean"
                 },
+                "route": {
+                    "type": "boolean"
+                },
                 "stp": {
                     "type": "boolean"
                 },
@@ -177,10 +180,7 @@
                 "cisco-vpdn": {
                     "type": "boolean"
                 },
-                "libvirt-vminfo": {
-                    "type": "boolean"
-                },
-                "vmware-vminfo": {
+                "vminfo": {
                     "type": "boolean"
                 },
                 "vlans": {
@@ -208,6 +208,9 @@
                     "type": "boolean"
                 },
                 "netscaler-vsvr": {
+                    "type": "boolean"
+                },
+                "xdsl": {
                     "type": "boolean"
                 }
             },
@@ -264,6 +267,9 @@
                 "hr-device": {
                     "type": "boolean"
                 },
+                "isis": {
+                    "type": "boolean"
+                },
                 "discovery-protocols": {
                     "type": "boolean"
                 },
@@ -274,6 +280,9 @@
                     "type": "boolean"
                 },
                 "ucd-diskio": {
+                    "type": "boolean"
+                },
+                "ucd-dsktable": {
                     "type": "boolean"
                 },
                 "services": {
@@ -336,16 +345,16 @@
                 "junose-atm-vp": {
                     "type": "boolean"
                 },
-                "vmware-vminfo": {
-                    "type": "boolean"
-                },
-                "libvirt-vminfo": {
+                "vminfo": {
                     "type": "boolean"
                 },
                 "mpls": {
                     "type": "boolean"
                 },
                 "ip6-addresses": {
+                    "type": "boolean"
+                },
+                "xdsl": {
                     "type": "boolean"
                 }
             },
@@ -368,6 +377,9 @@
             "properties": {
                 "no_bulk": {
                     "type": "array"
+                },
+                "unordered": {
+                    "type": "array"
                 }
             },
             "additionalProperties": false
@@ -376,7 +388,8 @@
             "type": "boolean"
         },
         "snmp_max_oid": {
-            "type": "string"
+            "type": "integer",
+            "minimum": 1
         },
         "ifXmcbc": {
             "type": "boolean"

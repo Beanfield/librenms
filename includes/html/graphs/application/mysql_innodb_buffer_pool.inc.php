@@ -2,12 +2,12 @@
 
 require 'includes/html/graphs/common.inc.php';
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app['app_id']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'mysql', $app->app_id]);
 
 $array = [
-    'IBPse'  => 'Buffer Pool Size',
+    'IBPse' => 'Buffer Pool Size',
     'IBPDBp' => 'Database Pages',
-    'IBPFe'  => 'Free Pages',
+    'IBPFe' => 'Free Pages',
     'IBPMps' => 'Modified Pages',
 ];
 

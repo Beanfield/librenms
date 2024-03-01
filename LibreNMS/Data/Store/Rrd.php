@@ -26,7 +26,6 @@
 namespace LibreNMS\Data\Store;
 
 use App\Polling\Measure\Measurement;
-use Illuminate\Support\Str;
 use LibreNMS\Config;
 use LibreNMS\Exceptions\FileExistsException;
 use LibreNMS\Exceptions\RrdGraphException;
@@ -272,13 +271,13 @@ class Rrd extends BaseDatastore
      */
     public function proxmoxName($pmxcluster, $vmid, $vmport)
     {
-        $pmxcdir = join('/', [$this->rrd_dir, 'proxmox', self::safeName($pmxcluster)]);
+        $pmxcdir = implode('/', [$this->rrd_dir, 'proxmox', self::safeName($pmxcluster)]);
         // this is not needed for remote rrdcached
         if (! is_dir($pmxcdir)) {
             mkdir($pmxcdir, 0775, true);
         }
 
-        return join('/', [$pmxcdir, self::safeName($vmid . '_netif_' . $vmport . '.rrd')]);
+        return implode('/', [$pmxcdir, self::safeName($vmid . '_netif_' . $vmport . '.rrd')]);
     }
 
     /**
@@ -460,7 +459,7 @@ class Rrd extends BaseDatastore
     public function getRrdFiles($device)
     {
         if ($this->rrdcached) {
-            $filename = sprintf('/%s', $device['hostname']);
+            $filename = sprintf('/%s', self::safeName($device['hostname']));
             $rrd_files = $this->command('list', $filename, '');
             // Command output is an array, create new array with each filename as a item in array.
             $rrd_files_array = explode("\n", trim($rrd_files[0]));
@@ -524,10 +523,10 @@ class Rrd extends BaseDatastore
     public function checkRrdExists($filename)
     {
         if ($this->rrdcached && version_compare($this->version, '1.5', '>=')) {
-            $chk = $this->command('last', $filename, '');
+            $check_output = implode($this->command('last', $filename, ''));
             $filename = str_replace([$this->rrd_dir . '/', $this->rrd_dir], '', $filename);
 
-            return ! Str::contains(implode($chk), "$filename': No such file or directory");
+            return ! (str_contains($check_output, $filename) && str_contains($check_output, 'No such file or directory'));
         } else {
             return is_file($filename);
         }
@@ -559,18 +558,21 @@ class Rrd extends BaseDatastore
      * @param  string  $options
      * @return string
      *
-     * @throws \LibreNMS\Exceptions\FileExistsException
      * @throws \LibreNMS\Exceptions\RrdGraphException
      */
-    public function graph(string $options): string
+    public function graph(string $options, array $env = null): string
     {
-        $process = new Process([Config::get('rrdtool', 'rrdtool'), '-'], $this->rrd_dir);
+        $process = new Process([Config::get('rrdtool', 'rrdtool'), '-'], $this->rrd_dir, $env);
         $process->setTimeout(300);
         $process->setIdleTimeout(300);
 
-        $command = $this->buildCommand('graph', '-', $options);
-        $process->setInput($command . "\nquit");
-        $process->run();
+        try {
+            $command = $this->buildCommand('graph', '-', $options);
+            $process->setInput($command . "\nquit");
+            $process->run();
+        } catch (FileExistsException $e) {
+            throw new RrdGraphException($e->getMessage(), 'File Exists');
+        }
 
         $feedback_position = strrpos($process->getOutput(), 'OK ');
         if ($feedback_position !== false) {
@@ -578,12 +580,15 @@ class Rrd extends BaseDatastore
         }
 
         // if valid image is returned with error, extract image and feedback
-        $image_type = Config::get('webui.graph_type', 'png');
+        $image_type = Config::get('webui.graph_type', 'svg');
         $search = $this->getImageEnd($image_type);
         if (($position = strrpos($process->getOutput(), $search)) !== false) {
             $position += strlen($search);
             throw new RrdGraphException(
                 substr($process->getOutput(), $position),
+                null,
+                null,
+                null,
                 $process->getExitCode(),
                 substr($process->getOutput(), 0, $position)
             );
@@ -591,7 +596,7 @@ class Rrd extends BaseDatastore
 
         // only error text was returned
         $error = trim($process->getOutput() . PHP_EOL . $process->getErrorOutput());
-        throw new RrdGraphException($error, $process->getExitCode(), '');
+        throw new RrdGraphException($error, null, null, null, $process->getExitCode());
     }
 
     private function getImageEnd(string $type): string
@@ -650,9 +655,9 @@ class Rrd extends BaseDatastore
             $substr_count_length = $length <= 0 ? null : min(strlen($descr), $length);
 
             $extra = substr_count($descr, ':', 0, $substr_count_length);
-            $result = substr(str_pad($result, $length), 0, ($length + $extra));
+            $result = substr(str_pad($result, $length), 0, $length + $extra);
             if ($extra > 0) {
-                $result = substr($result, 0, (-1 * $extra));
+                $result = substr($result, 0, -1 * $extra);
             }
         }
 

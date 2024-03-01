@@ -1,7 +1,6 @@
 <?php
 
 $name = 'squid';
-$app_id = $app['app_id'];
 $colours = 'mixed';
 $unit_text = 'hit ratio';
 $unitlen = 9;
@@ -12,27 +11,27 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => '1 minute',
-            'ds'       => 'reqhitratio1',
-            'colour'   => '582a72',
+            'descr' => '1 minute',
+            'ds' => 'reqhitratio1',
+            'colour' => '582a72',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => '5 minute',
-            'ds'       => 'reqhitratio5',
-            'colour'   => '28774f',
+            'descr' => '5 minute',
+            'ds' => 'reqhitratio5',
+            'colour' => '28774f',
         ],
         [
             'filename' => $rrd_filename,
-            'descr'    => '60 minute',
-            'ds'       => 'reqhitratio60',
-            'colour'   => '28536c',
+            'descr' => '60 minute',
+            'ds' => 'reqhitratio60',
+            'colour' => '28536c',
         ],
     ];
 } else {

@@ -8,11 +8,8 @@
                 <th data-column-id="hostname" data-order="asc">Device</th>
                 <th data-column-id="interface">Interface</th>
                 <th data-column-id="address" data-sortable="false" data-formatter="tooltip">MAC Address</th>
-<?php
-if (\LibreNMS\Config::get('mac_oui.enabled') === true) {
-    echo '                <th data-column-id="mac_oui" data-sortable="false" data-width="150px" data-visible="false" data-formatter="tooltip">Vendor</th>';
-}
-?>                <th data-column-id="description" data-sortable="false" data-formatter="tooltip">Description</th></tr>
+                <th data-column-id="mac_oui" data-sortable="false" data-width="150px" data-visible="<?php echo \LibreNMS\Config::get('mac_oui.enabled') ? 'true' : 'false' ?>" data-formatter="tooltip">Vendor</th>
+                <th data-column-id="description" data-sortable="false" data-formatter="tooltip">Description</th></tr>
             </tr>
         </thead>
     </table>
@@ -77,7 +74,7 @@ if ($_POST['interface'] == 'Vlan%') {
                "<div class=\"form-group\">"+
                "<input type=\"text\" name=\"address\" id=\"address\" value=\""+
 <?php
-echo '"' . htmlspecialchars($_POST['address']) . '"+';
+echo '"' . htmlspecialchars($vars['address']) . '"+';
 ?>
 
                "\" class=\"form-control input-sm\" placeholder=\"Mac Address\"/>"+
@@ -93,7 +90,7 @@ echo '"' . htmlspecialchars($_POST['address']) . '"+';
             search_type: "mac",
             device_id: '<?php echo htmlspecialchars($_POST['device_id']); ?>',
             interface: '<?php echo htmlspecialchars($_POST['interface']); ?>',
-            address: '<?php echo htmlspecialchars($_POST['address']); ?>'
+            address: '<?php echo htmlspecialchars($vars['address']); ?>'
         };
     },
     url: "ajax_table.php",

@@ -33,7 +33,7 @@ namespace LibreNMS;
  **/
 class RRDRecursiveFilterIterator extends \RecursiveFilterIterator
 {
-    public function accept()
+    public function accept(): bool
     {
         $filename = $this->current()->getFilename();
         if ($filename[0] === '.') {
@@ -44,6 +44,7 @@ class RRDRecursiveFilterIterator extends \RecursiveFilterIterator
             // We want to search into directories
             return true;
         }
+
         // Matches files with .rrd in the filename.
         // We are only searching rrd folder, but there could be other files and we don't want to cause a stink.
         return strpos($filename, '.rrd') !== false;

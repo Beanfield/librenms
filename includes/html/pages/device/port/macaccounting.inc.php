@@ -1,6 +1,7 @@
 <?php
 
 use LibreNMS\Config;
+use LibreNMS\Util\Mac;
 
 // FIXME - REWRITE!
 $hostname = $device['hostname'];
@@ -186,11 +187,11 @@ if ($vars['subview'] == 'top10') {
             echo '
       <table>
         <tr>
-          <td class=list-large width=200>' . \LibreNMS\Util\Rewrite::readableMac($acc['mac']) . '</td>
+          <td class=list-large width=200>' . Mac::parse($acc['mac'])->readable() . '</td>
           <td class=list-large width=200>' . $addy['ipv4_address'] . '</td>
           <td class=list-large width=500>' . $name . ' ' . $arp_name . '</td>
-          <td class=list-large width=100>' . \LibreNMS\Util\Number::formatSi(($acc['cipMacHCSwitchedBytes_input_rate'] / 8), 2, 3, 'bps') . '</td>
-          <td class=list-large width=100>' . \LibreNMS\Util\Number::formatSi(($acc['cipMacHCSwitchedBytes_output_rate'] / 8), 2, 3, 'bps') . '</td>
+          <td class=list-large width=100>' . \LibreNMS\Util\Number::formatSi($acc['cipMacHCSwitchedBytes_input_rate'] / 8, 2, 3, 'bps') . '</td>
+          <td class=list-large width=100>' . \LibreNMS\Util\Number::formatSi($acc['cipMacHCSwitchedBytes_output_rate'] / 8, 2, 3, 'bps') . '</td>
         </tr>
       </table>
     ';
@@ -202,7 +203,7 @@ if ($vars['subview'] == 'top10') {
             $graph_array['height'] = '100';
             $graph_array['width'] = '216';
             $graph_array['to'] = Config::get('time.now');
-            echo '<tr bgcolor="' . $bg_colour . '"' . ($bg_image ? ' background="' . $bg_image . '"' : '') . '"><td colspan="7">';
+            echo '<tr bgcolor="' . $bg_colour . '"><td colspan="7">';
 
             include 'includes/html/print-graphrow.inc.php';
 

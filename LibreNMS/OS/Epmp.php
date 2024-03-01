@@ -27,6 +27,7 @@ namespace LibreNMS\OS;
 
 use App\Models\Device;
 use LibreNMS\Device\WirelessSensor;
+use LibreNMS\Interfaces\Data\DataStorageInterface;
 use LibreNMS\Interfaces\Discovery\Sensors\WirelessClientsDiscovery;
 use LibreNMS\Interfaces\Discovery\Sensors\WirelessFrequencyDiscovery;
 use LibreNMS\Interfaces\Discovery\Sensors\WirelessRssiDiscovery;
@@ -34,6 +35,7 @@ use LibreNMS\Interfaces\Discovery\Sensors\WirelessSnrDiscovery;
 use LibreNMS\Interfaces\Polling\OSPolling;
 use LibreNMS\OS;
 use LibreNMS\RRD\RrdDefinition;
+use LibreNMS\Util\Number;
 
 class Epmp extends OS implements
     OSPolling,
@@ -61,7 +63,7 @@ class Epmp extends OS implements
         }
     }
 
-    public function pollOS(): void
+    public function pollOS(DataStorageInterface $datastore): void
     {
         $device = $this->getDeviceArray();
 
@@ -76,7 +78,7 @@ class Epmp extends OS implements
                 'numVisible' => $cambiumGPSNumVisibleSat,
             ];
             $tags = compact('rrd_def');
-            data_update($device, 'cambium-epmp-gps', $tags, $fields);
+            $datastore->put($device, 'cambium-epmp-gps', $tags, $fields);
             $this->enableGraph('cambium_epmp_gps');
         }
 
@@ -91,7 +93,7 @@ class Epmp extends OS implements
                 'downlinkMCSMode' => $cambiumSTADownlinkMCSMode,
             ];
             $tags = compact('rrd_def');
-            data_update($device, 'cambium-epmp-modulation', $tags, $fields);
+            $datastore->put($device, 'cambium-epmp-modulation', $tags, $fields);
             $this->enableGraph('cambium_epmp_modulation');
         }
 
@@ -109,7 +111,7 @@ class Epmp extends OS implements
                 'authFailure' => $sysNetworkEntryAuthenticationFailure,
             ];
             $tags = compact('rrd_def');
-            data_update($device, 'cambium-epmp-access', $tags, $fields);
+            $datastore->put($device, 'cambium-epmp-access', $tags, $fields);
             $this->enableGraph('cambium_epmp_access');
         }
 
@@ -121,8 +123,8 @@ class Epmp extends OS implements
         $dlWLanTotalUsedFrameTimePerSecond = $multi_get_array[0]['CAMBIUM-PMP80211-MIB::dlWLanTotalUsedFrameTimePerSecond'] ?? null;
 
         if (is_numeric($ulWLanTotalAvailableFrameTimePerSecond) && is_numeric($ulWLanTotalUsedFrameTimePerSecond) && $ulWLanTotalAvailableFrameTimePerSecond && $ulWLanTotalUsedFrameTimePerSecond) {
-            $ulWlanFrameUtilization = round(($ulWLanTotalUsedFrameTimePerSecond / $ulWLanTotalAvailableFrameTimePerSecond) * 100, 2);
-            $dlWlanFrameUtilization = round(($dlWLanTotalUsedFrameTimePerSecond / $dlWLanTotalAvailableFrameTimePerSecond) * 100, 2);
+            $ulWlanFrameUtilization = Number::calculatePercent($ulWLanTotalUsedFrameTimePerSecond, $ulWLanTotalAvailableFrameTimePerSecond);
+            $dlWlanFrameUtilization = Number::calculatePercent($dlWLanTotalUsedFrameTimePerSecond, $dlWLanTotalAvailableFrameTimePerSecond);
             d_echo($dlWlanFrameUtilization);
             d_echo($ulWlanFrameUtilization);
             $rrd_def = RrdDefinition::make()
@@ -133,7 +135,7 @@ class Epmp extends OS implements
                 'dlwlanframeutilization' => $dlWlanFrameUtilization,
             ];
             $tags = compact('rrd_def');
-            data_update($device, 'cambium-epmp-frameUtilization', $tags, $fields);
+            $datastore->put($device, 'cambium-epmp-frameUtilization', $tags, $fields);
             $this->enableGraph('cambium-epmp-frameUtilization');
         }
     }

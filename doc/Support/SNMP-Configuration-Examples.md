@@ -91,7 +91,36 @@ snmp-server location <YOUR-LOCATION>
 1. After rebooting the card (safe for connected load), configure Network, System and Access Control. Save config for each step.
 1. Configure SNMP. The device defaults to both SNMP v1 and v3 enabled, with default credentials. Disable what you do not need. SNMP v3 works, but uses MD5/DES. You may have to add another section to your SNMP credentials table in LibreNMS. Save.
 
-### HPE 3PAR
+### HPE / 3PAR
+
+#### Comware
+
+SNMPv2c
+
+```
+snmp-agent community read <YOUR-COMMUNITY>
+snmp-agent sys-info contact <YOUR-CONTACT>
+snmp-agent sys-info location <YOUR-LOCATION>
+snmp-agent sys-info version all
+snmp-agent packet max-size 6000
+```
+
+> `packet max-size` is required for some walks to complete, but the path must support fragmentation.
+
+SNMPv3
+
+```
+snmp-agent mib-view excluded ExcludeAll snmp
+snmp-agent group v3 V3ROGroup privacy read-view ViewDefault write-view ExcludeAll
+snmp-agent usm-user v3 <USER> V3ROGroup simple authentication-mode sha <AuthKey> privacy-mode aes128 <PrivacyKey>
+snmp-agent sys-info contact <YOUR-CONTACT>
+snmp-agent sys-info location <YOUR-LOCATION>
+snmp-agent sys-info version v3
+undo snmp-agent sys-info version v1 v2c
+snmp-agent packet max-size 6000
+```
+
+> `packet max-size` is required for some walks to complete, but the path must support fragmentation.
 
 #### Inform OS 3.2.x
 
@@ -383,7 +412,7 @@ Make sure the agent listens to all interfaces by adding the following
 line inside snmpd.conf:
 
 ```
-agentAddress udp:161,udp6:[::1]:161
+agentAddress udp:161,udp6:161
 ```
 
 This line simply means listen to connections across all interfaces
@@ -431,6 +460,16 @@ firewall-cmd --reload
 ```
 service snmpd restart
 ```
+
+### Arch Linux (snmpd v2)
+
+1. Install SNMP Package `pacman -S net-snmp`
+2. create SNMP folder `mkdir /etc/snmp/`
+3. set community `echo rocommunity read_only_community_string >> /etc/snmp/snmpd.conf`
+4. set contact `echo syscontact Firstname Lastname >> /etc/snmp/snmpd.conf`
+5. set location `echo syslocation L69 4RX >> /etc/snmp/snmpd.conf`
+6. enable startup `systemctl enable snmpd.service`
+7. start snmp `systemctl restart snmpd.service`
 
 ### Windows Server 2008 R2
 

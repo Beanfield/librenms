@@ -5,7 +5,10 @@ namespace App\Observers;
 use App;
 use App\ApiClients\Oxidized;
 use App\Models\Device;
+use App\Models\Eventlog;
 use File;
+use LibreNMS\Config;
+use LibreNMS\Enum\Severity;
 use Log;
 
 class DeviceObserver
@@ -18,7 +21,7 @@ class DeviceObserver
      */
     public function created(Device $device): void
     {
-        Log::event("Device $device->hostname has been created", $device, 'system', 3);
+        Eventlog::log("Device $device->hostname has been created", $device, 'system', Severity::Notice);
         (new Oxidized)->reloadNodes();
     }
 
@@ -39,17 +42,19 @@ class DeviceObserver
         if ($device->isDirty(['status', 'status_reason'])) {
             $type = $device->status ? 'up' : 'down';
             $reason = $device->status ? $device->getOriginal('status_reason') : $device->status_reason;
-            Log::event('Device status changed to ' . ucfirst($type) . " from $reason check.", $device, $type);
+            $polled_by = Config::get('distributed_poller') ? (' by ' . \config('librenms.node_id')) : '';
+
+            Eventlog::log(sprintf('Device status changed to %s from %s check%s.', ucfirst($type), $reason, $polled_by), $device, $type);
         }
 
         // key attribute changes
         foreach (['os', 'sysName', 'version', 'hardware', 'features', 'serial', 'icon', 'type', 'ip'] as $attribute) {
             if ($device->isDirty($attribute)) {
-                Log::event(self::attributeChangedMessage($attribute, $device->$attribute, $device->getOriginal($attribute)), $device, 'system', 3);
+                Eventlog::log(self::attributeChangedMessage($attribute, $device->$attribute, $device->getOriginal($attribute)), $device, 'system', Severity::Notice);
             }
         }
         if ($device->isDirty('location_id')) {
-            Log::event(self::attributeChangedMessage('location', (string) $device->location, null), $device, 'system', 3);
+            Eventlog::log(self::attributeChangedMessage('location', (string) $device->location, null), $device, 'system', Severity::Notice);
         }
     }
 
@@ -70,7 +75,7 @@ class DeviceObserver
             Log::error("Could not delete RRD files for: $device->hostname", [$e]);
         }
 
-        Log::event("Device $device->hostname has been removed", 0, 'system', 3);
+        Eventlog::log("Device $device->hostname has been removed", 0, 'system', Severity::Notice);
 
         (new Oxidized)->reloadNodes();
     }
@@ -94,7 +99,7 @@ class DeviceObserver
         $device->alerts()->delete();
         \DB::table('alert_device_map')->where('device_id', $device->device_id)->delete();
         $device->alertLogs()->delete();
-        $device->applications()->delete();
+        $device->applications()->forceDelete();
         $device->attribs()->delete();
         $device->availability()->delete();
         $device->bgppeers()->delete();
@@ -165,7 +170,7 @@ class DeviceObserver
 
         $device->ports()
             ->select(['port_id', 'device_id', 'ifIndex', 'ifName', 'ifAlias', 'ifDescr'])
-            ->chunk(100, function ($ports) {
+            ->chunkById(100, function ($ports) {
                 foreach ($ports as $port) {
                     $port->delete();
                 }
@@ -190,7 +195,7 @@ class DeviceObserver
             // a parent attached to this device
 
             // update the parent's max depth incase it used to be standalone
-            Device::whereIn('device_id', $pivotIds)->get()->each->validateStandalone();
+            Device::whereIntegerInRaw('device_id', $pivotIds)->get()->each->validateStandalone();
 
             // make sure this device's max depth is updated
             $device->updateMaxDepth();
@@ -201,7 +206,7 @@ class DeviceObserver
             $device->validateStandalone();
 
             // make sure the child's max depth is updated
-            Device::whereIn('device_id', $pivotIds)->get()->each->updateMaxDepth();
+            Device::whereIntegerInRaw('device_id', $pivotIds)->get()->each->updateMaxDepth();
         }
     }
 

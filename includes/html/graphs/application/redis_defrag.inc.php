@@ -9,13 +9,13 @@ $bigdescrlen = 20;
 $smalldescrlen = 15;
 $colours = 'mixed';
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app['app_id'], 'defrag']);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app->app_id, 'defrag']);
 
 $array = [
     'hits' => 'Hits',
-    'misses'   => 'Misses',
-    'key_hits'   => 'Key Hits',
-    'key_misses'   => 'Key Misses',
+    'misses' => 'Misses',
+    'key_hits' => 'Key Hits',
+    'key_misses' => 'Key Misses',
 ];
 
 $rrd_list = [];

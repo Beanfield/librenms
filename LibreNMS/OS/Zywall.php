@@ -26,6 +26,7 @@
 namespace LibreNMS\OS;
 
 use App\Models\Device;
+use LibreNMS\Interfaces\Data\DataStorageInterface;
 use LibreNMS\Interfaces\Discovery\OSDiscovery;
 use LibreNMS\Interfaces\Polling\OSPolling;
 use LibreNMS\OS\Shared\Zyxel;
@@ -39,13 +40,12 @@ class Zywall extends Zyxel implements OSDiscovery, OSPolling
 
         $device->hardware = $device->hardware ?: $device->sysDescr;
         // ZYXEL-ES-COMMON::sysSwVersionString.0
-        $pos = strpos($device->version, 'ITS');
-        if ($pos) {
+        if ($device->version && ($pos = strpos($device->version, 'ITS'))) {
             $device->version = substr($device->version, 0, $pos);
         }
     }
 
-    public function pollOS(): void
+    public function pollOS(DataStorageInterface $datastore): void
     {
         $sessions = snmp_get($this->getDeviceArray(), '.1.3.6.1.4.1.890.1.6.22.1.6.0', '-Ovq');
         if (is_numeric($sessions)) {
@@ -54,7 +54,7 @@ class Zywall extends Zyxel implements OSDiscovery, OSPolling
                 'sessions' => $sessions,
             ];
             $tags = compact('rrd_def');
-            data_update($this->getDeviceArray(), 'zywall-sessions', $tags, $fields);
+            $datastore->put($this->getDeviceArray(), 'zywall-sessions', $tags, $fields);
             $this->enableGraph('zywall_sessions');
         }
     }

@@ -1,7 +1,9 @@
 <?php
 
 use LibreNMS\RRD\RrdDefinition;
+use LibreNMS\Util\Number;
 
+$storage_cache = $storage_cache ?? [];
 foreach (dbFetchRows('SELECT * FROM storage WHERE device_id = ?', [$device['device_id']]) as $storage) {
     $descr = $storage['storage_descr'];
     $mib = $storage['storage_mib'];
@@ -20,17 +22,12 @@ foreach (dbFetchRows('SELECT * FROM storage WHERE device_id = ?', [$device['devi
 
     d_echo($storage);
 
-    if ($storage['size']) {
-        $percent = round(($storage['used'] / $storage['size'] * 100));
-    } else {
-        $percent = 0;
-    }
-
+    $percent = Number::calculatePercent($storage['used'], $storage['size'], 0);
     echo $percent . '% ';
 
     $fields = [
-        'used'   => $storage['used'],
-        'free'   => $storage['free'],
+        'used' => $storage['used'],
+        'free' => $storage['free'],
     ];
 
     $tags = compact('mib', 'descr', 'rrd_name', 'rrd_def');
@@ -42,4 +39,4 @@ foreach (dbFetchRows('SELECT * FROM storage WHERE device_id = ?', [$device['devi
     echo "\n";
 }//end foreach
 
-unset($storage);
+unset($storage, $storage_cache);

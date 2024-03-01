@@ -31,6 +31,9 @@ if (! Auth::user()->hasGlobalAdmin()) {
                 $order_by = '';
                 if (isset($_POST['sort']) && is_array($_REQUEST['sort'])) {
                     foreach ($_REQUEST['sort'] as $key => $value) {
+                        $key = preg_replace('/[^A-Za-z0-9_]/', '', $key); // only allow plain columns
+                        $value = strtolower($value) == 'desc' ? 'DESC' : 'ASC';
+
                         $order_by .= " $key $value";
                     }
                 } else {
@@ -70,7 +73,7 @@ if (! Auth::user()->hasGlobalAdmin()) {
                     }
 
                     $hostname = format_hostname($myrow);
-                    $sysname = ($hostname == $myrow['sysName']) ? $myrow['hostname'] : $myrow['sysName'];
+                    $sysname = htmlspecialchars(($hostname == $myrow['sysName']) ? $myrow['hostname'] : $myrow['sysName']);
                     array_push($res_arr, ['deviceid' => $myrow['id'], 'hostname' => $hostname, 'sysname' => $sysname, 'parent' => $parent, 'parentid' => $myrow['parentid']]);
                 }
                 $status = ['current' => $_POST['current'], 'rowCount' => $_POST['rowCount'], 'rows' => $res_arr, 'total' => $rec_count];

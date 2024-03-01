@@ -4,13 +4,13 @@ require 'includes/html/graphs/common.inc.php';
 
 $colours = 'mixed';
 $nototal = (($width < 224) ? 1 : 0);
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app['app_id'], $vars['source']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app->app_id, $vars['source']]);
 $array = [
-    'polling_rate'          => ['descr' => 'Polling rate'],
-    'last_rx'               => ['descr' => 'Last RX'],
-    'number_samplepoints'   => ['descr' => '# sample pts'],
-    'number_runs'           => ['descr' => '# runs'],
-    'span'                  => ['descr' => 'Sample span'],
+    'polling_rate' => ['descr' => 'Polling rate'],
+    'last_rx' => ['descr' => 'Last RX'],
+    'number_samplepoints' => ['descr' => '# sample pts'],
+    'number_runs' => ['descr' => '# runs'],
+    'span' => ['descr' => 'Sample span'],
 ];
 
 $rrd_list = [];

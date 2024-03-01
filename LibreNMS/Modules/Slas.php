@@ -20,17 +20,34 @@
 
 namespace LibreNMS\Modules;
 
+use App\Models\Device;
 use App\Models\Sla;
 use App\Observers\ModuleModelObserver;
 use LibreNMS\DB\SyncsModels;
+use LibreNMS\Interfaces\Data\DataStorageInterface;
 use LibreNMS\Interfaces\Discovery\SlaDiscovery;
 use LibreNMS\Interfaces\Module;
 use LibreNMS\Interfaces\Polling\SlaPolling;
 use LibreNMS\OS;
+use LibreNMS\Polling\ModuleStatus;
+use LibreNMS\RRD\RrdDefinition;
 
 class Slas implements Module
 {
     use SyncsModels;
+
+    /**
+     * @inheritDoc
+     */
+    public function dependencies(): array
+    {
+        return [];
+    }
+
+    public function shouldDiscover(OS $os, ModuleStatus $status): bool
+    {
+        return $status->isEnabledAndDeviceUp($os->getDevice()) && $os instanceof SlaDiscovery;
+    }
 
     /**
      * Discover this module. Heavier processes can be run here
@@ -38,13 +55,18 @@ class Slas implements Module
      *
      * @param  \LibreNMS\OS  $os
      */
-    public function discover(OS $os)
+    public function discover(OS $os): void
     {
         if ($os instanceof SlaDiscovery) {
             $slas = $os->discoverSlas();
             ModuleModelObserver::observe(Sla::class);
             $this->syncModels($os->getDevice(), 'slas', $slas);
         }
+    }
+
+    public function shouldPoll(OS $os, ModuleStatus $status): bool
+    {
+        return $status->isEnabledAndDeviceUp($os->getDevice()) && $os instanceof SlaPolling;
     }
 
     /**
@@ -54,7 +76,7 @@ class Slas implements Module
      *
      * @param  \LibreNMS\OS  $os
      */
-    public function poll(OS $os)
+    public function poll(OS $os, DataStorageInterface $datastore): void
     {
         if ($os instanceof SlaPolling) {
             // Gather our SLA's from the DB.
@@ -65,6 +87,17 @@ class Slas implements Module
                 // We have SLA's, lets go!!!
                 $os->pollSlas($slas);
                 $os->getDevice()->slas()->saveMany($slas);
+
+                // The base RRD
+                foreach ($slas as $sla) {
+                    $datastore->put($os->getDeviceArray(), 'sla', [
+                        'sla_nr' => $sla->sla_nr,
+                        'rrd_name' => ['sla', $sla->sla_nr],
+                        'rrd_def' => RrdDefinition::make()->addDataset('rtt', 'GAUGE', 0, 300000),
+                    ], [
+                        'rtt' => $sla->rtt,
+                    ]);
+                }
             }
         }
     }
@@ -72,11 +105,20 @@ class Slas implements Module
     /**
      * Remove all DB data for this module.
      * This will be run when the module is disabled.
-     *
-     * @param  \LibreNMS\OS  $os
      */
-    public function cleanup(OS $os)
+    public function cleanup(Device $device): void
     {
-        $os->getDevice()->slas()->delete();
+        $device->slas()->delete();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function dump(Device $device)
+    {
+        return [
+            'slas' => $device->slas()->orderBy('sla_nr')
+                ->get()->map->makeHidden(['device_id', 'sla_id']),
+        ];
     }
 }

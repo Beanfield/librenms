@@ -1,7 +1,6 @@
 <?php
 
 $name = 'squid';
-$app_id = $app['app_id'];
 $colours = 'mixed';
 $unit_text = 'clients';
 $unitlen = 10;
@@ -12,15 +11,15 @@ $printtotal = 0;
 $addarea = 1;
 $transparency = 15;
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app_id]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', $name, $app->app_id]);
 
 if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => 'clients',
-            'ds'       => 'clients',
-            'colour'   => '582a72',
+            'descr' => 'clients',
+            'ds' => 'clients',
+            'colour' => '582a72',
         ],
     ];
 } else {

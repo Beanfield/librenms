@@ -19,7 +19,7 @@ if (is_numeric($_GET['id']) && (Config::get('allow_unauth_graphs') || port_permi
     $title .= ' :: Port  ' . generate_port_link($port);
     $auth = true;
 } else {
-    echo 'Unauthenticad';
+    echo 'Unauthenticated';
     exit;
 }
 
@@ -30,7 +30,7 @@ $ifnum = @$port['ifIndex'];  // BSD / SNMP interface name / number
 $ifname = $port['label']; //Interface name that will be showed on top right of graph
 $hostname = shorthost($device['hostname']);
 
-if ($_GET['title']) {
+if (isset($_GET['title'])) {
     $ifname = \LibreNMS\Util\Clean::html($_GET['title'], []);
 }
 

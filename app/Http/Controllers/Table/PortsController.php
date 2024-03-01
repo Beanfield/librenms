@@ -26,9 +26,9 @@
 namespace App\Http\Controllers\Table;
 
 use App\Models\Port;
-use DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use LibreNMS\Util\Number;
 use LibreNMS\Util\Rewrite;
 use LibreNMS\Util\Url;
@@ -63,6 +63,18 @@ class PortsController extends TableController
             'port_descr_type',
             'ports.disabled' => 'disabled',
             'ports.ignore' => 'ignore',
+            'group' => function ($query, $group) {
+                return $query->whereHas('groups', function ($query) use ($group) {
+                    return $query->where('id', $group);
+                });
+            },
+            'devicegroup' => function ($query, $devicegroup) {
+                return $query->whereHas('device', function ($query) use ($devicegroup) {
+                    return $query->whereHas('groups', function ($query) use ($devicegroup) {
+                        return $query->where('id', $devicegroup);
+                    });
+                });
+            },
         ];
     }
 
@@ -95,8 +107,8 @@ class PortsController extends TableController
             ->where('deleted', $request->get('deleted', 0)) // always filter deleted
             ->when($request->get('hostname'), function (Builder $query, $hostname) {
                 $query->where(function (Builder $query) use ($hostname) {
-                    $query->where('hostname', 'like', "%$hostname%")
-                        ->orWhere('sysName', 'like', "%$hostname%");
+                    $query->where('devices.hostname', 'like', "%$hostname%")
+                        ->orWhere('devices.sysName', 'like', "%$hostname%");
                 });
             })
             ->when($request->get('ifAlias'), function (Builder $query, $ifAlias) {
@@ -148,7 +160,7 @@ class PortsController extends TableController
             'status' => $status,
             'device' => Url::deviceLink($port->device),
             'port' => Url::portLink($port),
-            'secondsIfLastChange' => ceil($port->device->uptime - ($port->ifLastChange / 100)),
+            'secondsIfLastChange' => ceil($port->device?->uptime - ($port->ifLastChange / 100)),
             'ifConnectorPresent' => ($port->ifConnectorPresent == 'true') ? 'yes' : 'no',
             'ifSpeed' => $port->ifSpeed,
             'ifMtu' => $port->ifMtu,

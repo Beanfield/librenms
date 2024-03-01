@@ -50,9 +50,9 @@ trait GeocodingHelper
         }
 
         try {
-            $options = $this->buildGeocodingOptions($address);
+            $client = $this->getClient()->withOptions($this->buildGeocodingOptions($address));
 
-            $response = $this->getClient()->get($this->geocoding_uri, $options);
+            $response = $client->get($this->geocoding_uri);
             $response_data = $response->json();
             if ($this->checkResponse($response, $response_data)) {
                 return $this->parseLatLng($response_data);
@@ -80,15 +80,15 @@ trait GeocodingHelper
      * @param  array  $data
      * @return array
      */
-    abstract protected function parseLatLng($data);
+    abstract protected function parseLatLng(array $data): array;
 
     /**
-     * Build Guzzle request option array
+     * Build request option array
      *
      * @param  string  $address
      * @return array
      *
      * @throws \Exception you may throw an Exception if validation fails
      */
-    abstract protected function buildGeocodingOptions($address);
+    abstract protected function buildGeocodingOptions(string $address): array;
 }

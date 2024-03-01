@@ -43,6 +43,7 @@ class Outcome:
     FAILED = 4
     EXCLUDED = 5
     TERMINATED = 6
+    NODNS = 7
 
 
 POLLER_GROUP = "0"
@@ -59,6 +60,7 @@ stats = {
     Outcome.FAILED: 0,
     Outcome.EXCLUDED: 0,
     Outcome.TERMINATED: 0,
+    Outcome.NODNS: 0,
 }
 
 
@@ -75,6 +77,7 @@ def get_outcome_symbol(outcome):
         Outcome.KNOWN: "*",
         Outcome.FAILED: "-",
         Outcome.TERMINATED: "",
+        Outcome.NODNS: "",
     }[outcome]
 
 
@@ -126,17 +129,22 @@ def scan_host(scan_ip):
 
         try:
 
+            if args.dns and not hostname:
+                return Result(scan_ip, hostname, Outcome.NODNS, "DNS not Resolved")
+
             arguments = [
                 "/usr/bin/env",
-                "php",
-                "addhost.php",
+                "lnms",
+                "device:add",
                 "-g",
                 POLLER_GROUP,
                 hostname or scan_ip,
             ]
+
             if args.ping:
                 arguments.insert(5, args.ping)
             add_output = check_output(arguments)
+
             return Result(scan_ip, hostname, Outcome.ADDED, add_output)
         except CalledProcessError as err:
             output = err.output.decode().rstrip()
@@ -173,17 +181,6 @@ Example: 192.168.0.0/31 will be treated as an RFC3021 p-t-p network with two add
 Example: 192.168.0.1/32 will be treated as a single host address""",
     )
     parser.add_argument(
-        "-P",
-        "--ping",
-        action="store_const",
-        const="-b",
-        default="",
-        help="""Add the device as an ICMP only device if it replies to ping but not SNMP.
-Example: """
-        + __file__
-        + """ -P 192.168.0.0/24""",
-    )
-    parser.add_argument(
         "-t",
         dest="threads",
         type=int,
@@ -199,12 +196,39 @@ Example: """
             POLLER_GROUP
         ),
     )
+
+    parser.add_argument(
+        "-o",
+        "--dns-only",
+        dest="dns",
+        action="store_true",
+        help="Only DNS resolved Devices",
+    )
+
     parser.add_argument("-l", "--legend", action="store_true", help="Print the legend.")
     parser.add_argument(
         "-v",
         "--verbose",
         action="count",
         help="Show debug output. Specifying multiple times increases the verbosity.",
+    )
+
+    pinggrp = parser.add_mutually_exclusive_group()
+    pinggrp.add_argument(
+        "--ping-fallback",
+        action="store_const",
+        dest="ping",
+        const="-b",
+        default="",
+        help="Add the device as an ICMP only device if it replies to ping but not SNMP.",
+    )
+    pinggrp.add_argument(
+        "--ping-only",
+        action="store_const",
+        dest="ping",
+        const="-P",
+        default="",
+        help="Always add the device as an ICMP only device.",
     )
 
     # compatibility arguments
@@ -214,6 +238,16 @@ Example: """
     )
     parser.add_argument("-n", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-b", action="store_true", help=argparse.SUPPRESS)
+    pinggrp.add_argument(
+        "-P",
+        "--ping",
+        action="store_const",
+        dest="ping",
+        const="-b",
+        default="",
+        help="Deprecated; Use --ping-fallback instead.",
+        # help=argparse.SUPPRESS, #uncomment after grace period
+    )
 
     args = parser.parse_args()
 
@@ -261,7 +295,7 @@ Example: """
     networks = []
     for net in netargs if netargs else CONFIG.get("nets", []):
         try:
-            networks.append(ip_network(u"%s" % net, True))
+            networks.append(ip_network("%s" % net, True))
             debug("Network parsed: {}".format(net), 2)
         except ValueError as e:
             parser.error("Invalid network format {}".format(e))

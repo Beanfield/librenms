@@ -5,13 +5,13 @@ require 'includes/html/graphs/common.inc.php';
 $colours = 'mixed';
 $nototal = (($width < 224) ? 1 : 0);
 $unit_text = 'Seconds';
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app['app_id'], $vars['source']]);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'chronyd', $app->app_id, $vars['source']]);
 $array = [
-    'adjusted_offset'       => ['descr' => 'Adjusted'],
-    'measured_offset'       => ['descr' => 'Measured'],
-    'offset'                => ['descr' => 'Estimated'],
-    'estimated_error'       => ['descr' => 'Est. error'],
-    'stddev'                => ['descr' => 'Std dev'],
+    'adjusted_offset' => ['descr' => 'Adjusted'],
+    'measured_offset' => ['descr' => 'Measured'],
+    'offset' => ['descr' => 'Estimated'],
+    'estimated_error' => ['descr' => 'Est. error'],
+    'stddev' => ['descr' => 'Std dev'],
 ];
 
 $rrd_list = [];

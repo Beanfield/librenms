@@ -12,10 +12,10 @@ $colours = 'mixed';
 
 $array = [
     'connected' => 'Connected',
-    'blocked'   => 'Blocked',
+    'blocked' => 'Blocked',
 ];
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app['app_id'], 'clients']);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app->app_id, 'clients']);
 
 $rrd_list = [];
 if (Rrd::checkRrdExists($rrd_filename)) {

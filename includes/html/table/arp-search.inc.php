@@ -1,8 +1,11 @@
 <?php
 
+use LibreNMS\Util\Mac;
+
 $param = [];
 
-$sql .= ' FROM `ipv4_mac` AS M, `ports` AS P, `devices` AS D ';
+$sql = ' FROM `ipv4_mac` AS M, `ports` AS P, `devices` AS D ';
+$where = '';
 
 if (! Auth::user()->hasGlobalRead()) {
     $device_ids = Permissions::devicesForUser()->toArray() ?: [0];
@@ -17,7 +20,7 @@ if (is_numeric($vars['device_id'])) {
     $param[] = $vars['device_id'];
 }
 
-if (is_numeric($vars['port_id'])) {
+if (isset($vars['port_id']) && is_numeric($vars['port_id'])) {
     $sql .= ' AND P.port_id = ?';
     $param[] = $vars['port_id'];
 }
@@ -53,7 +56,7 @@ if (! isset($sort) || empty($sort)) {
 $sql .= " ORDER BY $sort";
 
 if (isset($current)) {
-    $limit_low = (($current * $rowCount) - ($rowCount));
+    $limit_low = (($current * $rowCount) - $rowCount);
     $limit_high = $rowCount;
 }
 
@@ -65,7 +68,7 @@ $sql = "SELECT *,`P`.`ifDescr` AS `interface` $sql";
 
 foreach (dbFetchRows($sql, $param) as $entry) {
     $entry = cleanPort($entry);
-    if (! $ignore) {
+    if (empty($ignore)) {
         if ($entry['ifInErrors'] > 0 || $entry['ifOutErrors'] > 0) {
             $error_img = generate_port_link($entry, "<i class='fa fa-flag fa-lg' style='color:red' aria-hidden='true'></i>", 'port_errors');
         } else {
@@ -94,13 +97,14 @@ foreach (dbFetchRows($sql, $param) as $entry) {
             $arp_if = 'Local port';
         }
 
+        $mac = Mac::parse($entry['mac_address']);
         $response[] = [
-            'mac_address'      => \LibreNMS\Util\Rewrite::readableMac($entry['mac_address']),
-            'mac_oui'          => \LibreNMS\Util\Rewrite::readableOUI($entry['mac_address']),
-            'ipv4_address'     => $entry['ipv4_address'],
-            'hostname'         => generate_device_link($entry),
-            'interface'        => generate_port_link($entry, makeshortif($entry['label'])) . ' ' . $error_img,
-            'remote_device'    => $arp_name,
+            'mac_address' => $mac->readable(),
+            'mac_oui' => $mac->vendor(),
+            'ipv4_address' => $entry['ipv4_address'],
+            'hostname' => generate_device_link($entry),
+            'interface' => generate_port_link($entry, makeshortif($entry['label'])) . ' ' . $error_img,
+            'remote_device' => $arp_name,
             'remote_interface' => $arp_if,
         ];
     }//end if
@@ -109,9 +113,9 @@ foreach (dbFetchRows($sql, $param) as $entry) {
 }//end foreach
 
 $output = [
-    'current'  => $current,
+    'current' => $current,
     'rowCount' => $rowCount,
-    'rows'     => $response,
-    'total'    => $total,
+    'rows' => $response,
+    'total' => $total,
 ];
 echo json_encode($output, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

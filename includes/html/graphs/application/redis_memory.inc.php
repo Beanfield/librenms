@@ -10,14 +10,14 @@ $bigdescrlen = 20;
 $smalldescrlen = 15;
 $colours = 'mixed';
 
-$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app['app_id'], 'memory']);
+$rrd_filename = Rrd::name($device['hostname'], ['app', 'redis', $app->app_id, 'memory']);
 
 $array = [
     'active' => 'Active',
-    'allocated'   => 'Allocated',
-    'resident'   => 'Resident',
-    'frag_bytes'   => 'Frag Bytes',
-    'rss_bytes'   => 'RSS Bytes',
+    'allocated' => 'Allocated',
+    'resident' => 'Resident',
+    'frag_bytes' => 'Frag Bytes',
+    'rss_bytes' => 'RSS Bytes',
 ];
 
 $rrd_list = [];

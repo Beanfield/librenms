@@ -9,8 +9,6 @@ class Handler extends ExceptionHandler
 {
     /**
      * A list of the exception types that are not reported.
-     *
-     * @var array
      */
     protected $dontReport = [
         \Illuminate\Auth\AuthenticationException::class,
@@ -19,6 +17,7 @@ class Handler extends ExceptionHandler
         \Illuminate\Database\Eloquent\ModelNotFoundException::class,
         \Illuminate\Session\TokenMismatchException::class,
         \Illuminate\Validation\ValidationException::class,
+        \Symfony\Component\Console\Exception\CommandNotFoundException::class,
     ];
 
     /**
@@ -49,8 +48,12 @@ class Handler extends ExceptionHandler
 
         // try to upgrade generic exceptions to more specific ones
         if (! config('app.debug')) {
+            if ($exception instanceof \Illuminate\View\ViewException || $exception instanceof \Spatie\LaravelIgnition\Exceptions\ViewException) {
+                $base = $exception->getPrevious(); // get real exception
+            }
+
             foreach ($this->upgradable as $class) {
-                if ($new = $class::upgrade($exception)) {
+                if ($new = $class::upgrade($base ?? $exception)) {
                     return parent::render($request, $new);
                 }
             }

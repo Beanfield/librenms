@@ -1,7 +1,6 @@
 <?php
 
 $name = 'postgres';
-$app_id = $app['app_id'];
 $scale_min = 0;
 $colours = 'mixed';
 $unit_text = '';
@@ -14,9 +13,9 @@ $addarea = 1;
 $transparency = 15;
 
 if (isset($vars['database'])) {
-    $rrd_name_array = ['app', $name, $app_id, $vars['database']];
+    $rrd_name_array = ['app', $name, $app->app_id, $vars['database']];
 } else {
-    $rrd_name_array = ['app', $name, $app_id];
+    $rrd_name_array = ['app', $name, $app->app_id];
 }
 
 $rrd_filename = Rrd::name($device['hostname'], $rrd_name_array);
@@ -25,9 +24,9 @@ if (Rrd::checkRrdExists($rrd_filename)) {
     $rrd_list = [
         [
             'filename' => $rrd_filename,
-            'descr'    => 'Backends',
-            'ds'       => 'backends',
-            'colour'   => '582A72',
+            'descr' => 'Backends',
+            'ds' => 'backends',
+            'colour' => '582A72',
         ],
     ];
 } else {

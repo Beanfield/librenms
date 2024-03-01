@@ -5,7 +5,7 @@
 Only the most recent monthly release and daily release recieve security updates.
 LibreNMS is supported by volunteers, they all do their best to keep LibreNMS secure.
 
-## Reporting a Vulnerability
+## Finding a Vulnerability
 
 Like anyone, we appreciate the work people put in to find flaws in
 software and welcome anyone to do so with LibreNMS, this will lead to
@@ -19,3 +19,9 @@ get back to as quick as we can, this is usually within 24 hours.
 We are happy to attribute credit to the findings, but we ask that we're
 given a chance to patch any vulnerability before public disclosure so
 that our users can update as soon as a fix is available.
+
+# Reporting a Vulnerability
+
+If you discover a security vulnerability in librenms please disclose it via our [GitHub Security Advisories Page](https://github.com/librenms/librenms/security/advisories/new).
+
+Thank you for improving the security of librenms.

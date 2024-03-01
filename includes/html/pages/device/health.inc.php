@@ -22,6 +22,7 @@
  * @copyright  2022 Peca Nesovanovic
  * @author     Peca Nesovanovic <peca.nesovanovic@sattrakt.com>
  */
+
 use App\Models\DiskIo;
 use App\Models\Mempool;
 use App\Models\Processor;
@@ -35,9 +36,9 @@ use App\Models\Storage;
 $qfp = 0;
 if ($device['os_group'] == 'cisco') {
     $component = new LibreNMS\Component();
-    $components = $component->getComponents($device['device_id'], ['type'=> 'cisco-qfp']);
+    $components = $component->getComponents($device['device_id'], ['type' => 'cisco-qfp']);
     $components = $components[$device['device_id']];
-    $qfp = count($components);
+    $qfp = isset($components) ? count($components) : 0;
 }
 
 unset($datas);
@@ -74,7 +75,7 @@ foreach ($sensors as $sensor_name) {
         //strtolower because 'dBm - dbm' difference
         $lowname = strtolower($sensor_name);
         $datas[] = $lowname;
-        $type_text[$lowname] = trans('sensors.' . $lowname)['short'];
+        $type_text[$lowname] = trans('sensors.' . $lowname . '.short');
     }
 }
 
@@ -86,20 +87,20 @@ $type_text['storage'] = 'Disk Usage';
 $type_text['diskio'] = 'Disk I/O';
 
 $link_array = [
-    'page'   => 'device',
+    'page' => 'device',
     'device' => $device['device_id'],
-    'tab'    => 'health',
+    'tab' => 'health',
 ];
 
 print_optionbar_start();
 
 echo "<span style='font-weight: bold;'>Health</span> &#187; ";
 
-if (! $vars['metric']) {
+if (empty($vars['metric'])) {
     $vars['metric'] = 'overview';
 }
 
-unset($sep);
+$sep = '';
 foreach ($datas as $type) {
     echo $sep;
     if ($vars['metric'] == $type) {

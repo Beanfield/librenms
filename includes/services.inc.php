@@ -4,6 +4,8 @@ use App\Models\Device;
 use LibreNMS\Alert\AlertRules;
 use LibreNMS\Config;
 use LibreNMS\RRD\RrdDefinition;
+use LibreNMS\Util\Clean;
+use LibreNMS\Util\IP;
 
 function get_service_status($device = null)
 {
@@ -37,7 +39,7 @@ function get_service_status($device = null)
     return $service_count;
 }
 
-function add_service($device, $type, $desc, $ip = '', $param = '', $ignore = 0, $disabled = 0, $template_id = '', $name)
+function add_service($device, $type, $desc, $ip = '', $param = '', $ignore = 0, $disabled = 0, $template_id = '', $name = '')
 {
     if (! is_array($device)) {
         $device = device_by_id_cache($device);
@@ -120,6 +122,10 @@ function poll_service($service)
 {
     $update = [];
     $old_status = $service['service_status'];
+    $service['service_type'] = Clean::fileName($service['service_type']);
+    $service['service_ip'] = IP::isValid($service['service_ip']) ? $service['service_ip'] : Clean::fileName($service['service_ip']);
+    $service['hostname'] = IP::isValid($service['hostname']) ? $service['hostname'] : Clean::fileName($service['hostname']);
+    $service['overwrite_ip'] = IP::isValid($service['overwrite_ip']) ? $service['overwrite_ip'] : Clean::fileName($service['overwrite_ip']);
     $check_cmd = '';
 
     // if we have a script for this check, use it.
@@ -130,7 +136,7 @@ function poll_service($service)
 
     // If we do not have a cmd from the check script, build one.
     if ($check_cmd == '') {
-        $check_cmd = Config::get('nagios_plugins') . '/check_' . $service['service_type'] . ' -H ' . ($service['service_ip'] ? $service['service_ip'] : $service['hostname']);
+        $check_cmd = Config::get('nagios_plugins') . '/check_' . $service['service_type'] . ' -H ' . ($service['service_ip'] ?: $service['hostname']);
         $check_cmd .= ' ' . $service['service_param'];
     }
 
@@ -159,7 +165,7 @@ function poll_service($service)
         // rrd definition
         $rrd_def = new RrdDefinition();
         foreach ($perf as $k => $v) {
-            if (($v['uom'] == 'c') && ! (preg_match('/[Uu]ptime/', $k))) {
+            if (($v['uom'] == 'c') && ! preg_match('/[Uu]ptime/', $k)) {
                 // This is a counter, create the DS as such
                 $rrd_def->addDataset($k, 'COUNTER', 0);
             } else {
@@ -253,7 +259,7 @@ function check_service($command)
         [$ds,$values] = explode('=', trim($string));
 
         // Keep the first value, discard the others.
-        [$value,,,] = explode(';', trim($values));
+        [$value] = explode(';', trim($values));
         $value = trim($value);
 
         // Set an empty uom
@@ -314,7 +320,7 @@ function check_service($command)
             }
             // We have a DS. Add an entry to the array.
             d_echo('Perf Data - DS: ' . $ds . ', Value: ' . $value . ', UOM: ' . $uom . "\n");
-            $metrics[$ds] = ['value'=>$value, 'uom'=>$uom];
+            $metrics[$ds] = ['value' => $value, 'uom' => $uom];
         } else {
             // No DS. Don't add an entry to the array.
             d_echo("Perf Data - None.\n");

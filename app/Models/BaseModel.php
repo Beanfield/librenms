@@ -70,7 +70,7 @@ abstract class BaseModel extends Model
             $table = $this->getTable();
         }
 
-        return $query->whereIn("$table.device_id", \Permissions::devicesForUser($user));
+        return $query->whereIntegerInRaw("$table.device_id", \Permissions::devicesForUser($user));
     }
 
     /**
@@ -92,8 +92,24 @@ abstract class BaseModel extends Model
         }
 
         return $query->where(function ($query) use ($table, $user) {
-            return $query->whereIn("$table.port_id", \Permissions::portsForUser($user))
-                ->orWhereIn("$table.device_id", \Permissions::devicesForUser($user));
+            return $query->whereIntegerInRaw("$table.port_id", \Permissions::portsForUser($user))
+                ->orWhereIntegerInRaw("$table.device_id", \Permissions::devicesForUser($user));
         });
+    }
+
+    public static function definedRelations(): array
+    {
+        $reflector = new \ReflectionClass(get_called_class());
+
+        return collect($reflector->getMethods())
+            ->filter(
+                fn ($method) => ! empty($method->getReturnType()) &&
+                    str_contains(
+                        $method->getReturnType(),
+                        'Illuminate\Database\Eloquent\Relations'
+                    )
+            )
+            ->pluck('name')
+            ->all();
     }
 }
